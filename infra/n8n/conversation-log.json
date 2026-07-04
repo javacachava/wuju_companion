@@ -17,6 +17,35 @@
     },
     {
       "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "secret-match",
+              "leftValue": "={{ $json.headers?.[\"x-companero-secret\"] ?? \"\" }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "rightValue": "={{ $vars.COMPANERO_SECRET ?? \"test\" }}"
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "e8d8b074-06db-41d4-95b8-466845736a24",
+      "name": "Validate Companion Secret",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
         "mode": "manual",
         "includeOtherFields": false,
         "assignments": {
@@ -62,6 +91,80 @@
     },
     {
       "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "hOrXBLi0WbnxRpLb",
+          "cachedResultName": "companero_conversation_logs"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "timestamp": "={{ $json.timestamp }}",
+            "characterId": "={{ $json.characterId }}",
+            "userMessage": "={{ $json.userMessage }}",
+            "assistantMessage": "={{ $json.assistantMessage }}",
+            "skillUsed": "={{ $json.skillUsed }}"
+          },
+          "schema": [
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "characterId",
+              "displayName": "characterId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "userMessage",
+              "displayName": "userMessage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "assistantMessage",
+              "displayName": "assistantMessage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "skillUsed",
+              "displayName": "skillUsed",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        }
+      },
+      "id": "643ca72a-feed-47df-bdcb-50ec4dc9fb1b",
+      "name": "Store Conversation Log",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [760, 300]
+    },
+    {
+      "parameters": {
         "respondWith": "json",
         "responseBody": "={{ { ok: true, workflow: \"conversation-log\", timestamp: $json.timestamp } }}",
         "options": {
@@ -73,6 +176,20 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [840, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: false, error: \"Unauthorized\" } }}",
+        "options": {
+          "responseCode": 403
+        }
+      },
+      "id": "5755b600-cfb4-4b5a-b139-cf3469810c1a",
+      "name": "Respond Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [660, 480]
     }
   ],
   "connections": {
@@ -80,7 +197,25 @@
       "main": [
         [
           {
+            "node": "Validate Companion Secret",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Companion Secret": {
+      "main": [
+        [
+          {
             "node": "Normalize Conversation Payload",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Unauthorized",
             "type": "main",
             "index": 0
           }
@@ -88,6 +223,17 @@
       ]
     },
     "Normalize Conversation Payload": {
+      "main": [
+        [
+          {
+            "node": "Store Conversation Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Conversation Log": {
       "main": [
         [
           {
