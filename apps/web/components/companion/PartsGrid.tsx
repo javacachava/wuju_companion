@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Check } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import type { PartCategory } from "@/lib/companion/types";
 import { useCharacter } from "./CharacterContext";
 
@@ -11,24 +12,36 @@ type PartsGridProps = {
 const PAGE_SIZE = 9;
 
 export function PartsGrid({ category }: PartsGridProps) {
-  const { character } = useCharacter();
+  const { character, equipPart, inventory } = useCharacter();
   const [page, setPage] = useState(0);
+  const [updatingPartId, setUpdatingPartId] = useState<string | null>(null);
 
-  const demoItems = useMemo(
-    () =>
-      Array.from({ length: 12 }).map((_, index) => ({
-        id: `${category}-${index + 1}`,
-        name: `${category} ${index + 1}`,
-      })),
-    [category],
-  );
+  useEffect(() => {
+    setPage(0);
+  }, [category]);
 
-  const totalPages = Math.max(1, Math.ceil(demoItems.length / PAGE_SIZE));
+  const items = useMemo(() => inventory?.[category] ?? [], [category, inventory]);
+
+  const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages - 1);
-  const pageItems = demoItems.slice(
+  const pageItems = items.slice(
     currentPage * PAGE_SIZE,
     (currentPage + 1) * PAGE_SIZE,
   );
+  const activePartId = character.parts[category]?.id ?? null;
+
+  const handleEquip = async (partId: string) => {
+    if (updatingPartId || partId === activePartId) {
+      return;
+    }
+
+    setUpdatingPartId(partId);
+    try {
+      await equipPart(category, partId);
+    } finally {
+      setUpdatingPartId(null);
+    }
+  };
 
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -43,15 +56,34 @@ export function PartsGrid({ category }: PartsGridProps) {
       </div>
 
       <div className="mt-3 grid grid-cols-3 gap-2">
-        {pageItems.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            className="aspect-square rounded-md border border-slate-200 bg-slate-50 p-2 text-xs text-slate-600 transition hover:bg-slate-100"
-          >
-            {item.name}
-          </button>
-        ))}
+        {pageItems.map((item) => {
+          const active = item.id === activePartId;
+          const updating = item.id === updatingPartId;
+
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => void handleEquip(item.id)}
+              disabled={Boolean(updatingPartId)}
+              className={`relative aspect-square rounded-md border p-2 text-xs transition ${
+                active
+                  ? "border-blue-300 bg-blue-50 text-blue-700"
+                  : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
+              } disabled:cursor-wait disabled:opacity-70`}
+            >
+              <span className="line-clamp-3">{updating ? "Guardando..." : item.name}</span>
+              {active ? (
+                <Check className="absolute right-2 top-2 h-3.5 w-3.5" />
+              ) : null}
+            </button>
+          );
+        })}
+        {pageItems.length === 0 ? (
+          <div className="col-span-3 rounded-md border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-xs text-slate-500">
+            No hay partes disponibles.
+          </div>
+        ) : null}
       </div>
 
       <div className="mt-3 flex items-center justify-between text-sm">

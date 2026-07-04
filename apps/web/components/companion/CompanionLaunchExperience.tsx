@@ -124,7 +124,7 @@ export function CompanionLaunchExperience({
     });
   };
 
-  const activeState = BOX_STATES[frameIndex];
+  const activeState = BOX_STATES[frameIndex] ?? BOX_STATES[0];
 
   return (
     <main className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-6xl items-center p-4 py-8 sm:p-6">

@@ -1,11 +1,17 @@
 "use client";
 
 import { createContext, useContext } from "react";
-import type { CharacterProfile } from "@/lib/companion/types";
+import type {
+  CharacterInventory,
+  CharacterProfile,
+  PartCategory,
+} from "@/lib/companion/types";
 
 type CharacterContextValue = {
   character: CharacterProfile;
+  inventory: CharacterInventory | null;
   setCharacter: (character: CharacterProfile) => void;
+  equipPart: (category: PartCategory, partId: string) => Promise<void>;
 };
 
 const CharacterContext = createContext<CharacterContextValue | null>(null);

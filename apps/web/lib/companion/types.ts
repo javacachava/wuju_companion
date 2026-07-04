@@ -14,11 +14,14 @@ export type CharacterPart = {
 };
 
 export type CharacterParts = Record<PartCategory, CharacterPart | null>;
+export type CharacterInventory = Record<PartCategory, CharacterPart[]>;
 
 export type SelectedAssistant = {
   id: string;
   name: string;
   avatar: string;
+  personality: Personality;
+  voiceId: string;
   role: string;
   summary: string;
   voiceLabel: string;

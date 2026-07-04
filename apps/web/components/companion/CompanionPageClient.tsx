@@ -5,13 +5,14 @@ import {
   createCharacter,
   getCharacter,
   saveCharacter,
-} from "@/lib/companion/mock-api";
+} from "@/lib/companion/api";
 import type { CharacterProfile } from "@/lib/companion/types";
 import { CompanionApp } from "./CompanionApp";
 import { CompanionLaunchExperience } from "./CompanionLaunchExperience";
 import { Onboarding } from "./Onboarding";
 
 const CHARACTER_ID_KEY = "characterId";
+const CHARACTER_USER_NAME_KEY = "characterUserName";
 
 type PageStatus = "checking" | "onboarding" | "selecting" | "ready";
 
@@ -23,23 +24,26 @@ export function CompanionPageClient() {
     let active = true;
 
     const loadCharacter = async () => {
-      const cachedId = localStorage.getItem(CHARACTER_ID_KEY);
-      if (!cachedId) {
+      const cachedUserName = localStorage.getItem(CHARACTER_USER_NAME_KEY);
+      if (!cachedUserName) {
+        localStorage.removeItem(CHARACTER_ID_KEY);
         if (active) setStatus("onboarding");
         return;
       }
 
-      const existing = await getCharacter(cachedId);
-      if (!active) return;
+      try {
+        const existing = await getCharacter(cachedUserName);
+        if (!active) return;
 
-      if (!existing) {
+        localStorage.setItem(CHARACTER_ID_KEY, existing.id);
+        setCharacter(existing);
+        setStatus(existing.assistant ? "ready" : "selecting");
+      } catch {
         localStorage.removeItem(CHARACTER_ID_KEY);
+        localStorage.removeItem(CHARACTER_USER_NAME_KEY);
+        if (!active) return;
         setStatus("onboarding");
-        return;
       }
-
-      setCharacter(existing);
-      setStatus(existing.assistant ? "ready" : "selecting");
     };
 
     void loadCharacter();
@@ -51,6 +55,7 @@ export function CompanionPageClient() {
 
   const handleCreateCharacter = useCallback(async (userName: string) => {
     const next = await createCharacter(userName);
+    localStorage.setItem(CHARACTER_USER_NAME_KEY, next.userName);
     localStorage.setItem(CHARACTER_ID_KEY, next.id);
     setCharacter(next);
     setStatus("selecting");

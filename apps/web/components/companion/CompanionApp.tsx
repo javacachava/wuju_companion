@@ -1,7 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import type { CharacterProfile, PartCategory } from "@/lib/companion/types";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { equipPart as equipCharacterPart, getInventory } from "@/lib/companion/api";
+import type {
+  CharacterInventory,
+  CharacterProfile,
+  PartCategory,
+} from "@/lib/companion/types";
 import { AssistantData } from "./AssistantData";
 import { CharacterInfo } from "./CharacterInfo";
 import { CharacterProvider } from "./CharacterContext";
@@ -16,13 +21,49 @@ type CompanionAppProps = {
 
 export function CompanionApp({ character, onCharacterChange }: CompanionAppProps) {
   const [selectedCategory, setSelectedCategory] = useState<PartCategory>("hair");
+  const [inventory, setInventory] = useState<CharacterInventory | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadInventory = async () => {
+      try {
+        const nextInventory = await getInventory(character.id);
+        if (active) {
+          setInventory(nextInventory);
+        }
+      } catch (error) {
+        console.error("[companion] inventory failed", error);
+        if (active) {
+          setInventory(null);
+        }
+      }
+    };
+
+    void loadInventory();
+
+    return () => {
+      active = false;
+    };
+  }, [character.id]);
+
+  const handleEquipPart = useCallback(
+    async (category: PartCategory, partId: string) => {
+      const nextCharacter = await equipCharacterPart(character, category, partId);
+      onCharacterChange(nextCharacter);
+      setInventory(await getInventory(nextCharacter.id));
+    },
+    [character, onCharacterChange],
+  );
 
   const contextValue = useMemo(
     () => ({
       character,
+      inventory,
       setCharacter: onCharacterChange,
+      equipPart: handleEquipPart,
     }),
-    [character, onCharacterChange],
+    [character, handleEquipPart, inventory, onCharacterChange],
   );
 
   return (

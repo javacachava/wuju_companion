@@ -116,6 +116,8 @@ export function buildAssistantProfile(
     id: assistant.id,
     name: assistant.name,
     avatar: assistant.avatar,
+    personality: assistant.personality,
+    voiceId: assistant.voiceId,
     role: assistant.role,
     summary: assistant.summary,
     voiceLabel: assistant.voiceLabel,
