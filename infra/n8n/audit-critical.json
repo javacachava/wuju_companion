@@ -1,0 +1,105 @@
+{
+  "name": "Companero audit-critical",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "audit-critical",
+        "authentication": "none",
+        "responseMode": "responseNode"
+      },
+      "id": "661bec00-a01d-4dfe-93a8-7a10e4806890",
+      "name": "Audit Critical Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [240, 300],
+      "webhookId": "597d0185-7483-4c6a-8e29-0f8cb5f9d424"
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "event",
+              "name": "event",
+              "value": "audit-critical",
+              "type": "string"
+            },
+            {
+              "id": "character-id",
+              "name": "characterId",
+              "value": "={{ $json.body?.characterId ?? $json.characterId ?? \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "critical-count",
+              "name": "criticalCount",
+              "value": "={{ Number($json.body?.criticalCount ?? $json.criticalCount ?? 0) }}",
+              "type": "number"
+            },
+            {
+              "id": "summary",
+              "name": "summary",
+              "value": "={{ $json.body?.summary ?? $json.summary ?? \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "received-at",
+              "name": "receivedAt",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "fd2cd4b5-a851-46e1-a224-6606d11ae0d8",
+      "name": "Normalize Audit Payload",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [540, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, workflow: \"audit-critical\", receivedAt: $json.receivedAt } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "55aa2ae5-5ee9-473c-b3cb-74abfcc53d15",
+      "name": "Respond Audit Received",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [840, 300]
+    }
+  ],
+  "connections": {
+    "Audit Critical Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalize Audit Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Audit Payload": {
+      "main": [
+        [
+          {
+            "node": "Respond Audit Received",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

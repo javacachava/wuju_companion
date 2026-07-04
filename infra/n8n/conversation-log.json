@@ -1,0 +1,105 @@
+{
+  "name": "Companero conversation-log",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "conversation-log",
+        "authentication": "none",
+        "responseMode": "responseNode"
+      },
+      "id": "12a9e40f-be64-4a98-a261-9ff67cec1f84",
+      "name": "Conversation Log Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [240, 300],
+      "webhookId": "0035081e-bb8c-43cb-9b08-1b0491b1b31d"
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "character-id",
+              "name": "characterId",
+              "value": "={{ $json.body?.characterId ?? $json.characterId ?? \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "user-message",
+              "name": "userMessage",
+              "value": "={{ $json.body?.userMessage ?? $json.userMessage ?? \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "assistant-message",
+              "name": "assistantMessage",
+              "value": "={{ $json.body?.assistantMessage ?? $json.assistantMessage ?? \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "skill-used",
+              "name": "skillUsed",
+              "value": "={{ $json.body?.skillUsed ?? $json.skillUsed ?? \"chat-base\" }}",
+              "type": "string"
+            },
+            {
+              "id": "timestamp",
+              "name": "timestamp",
+              "value": "={{ $json.body?.timestamp ?? $json.timestamp ?? $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "6d03b887-e523-4791-8a2c-1f68ee2146c0",
+      "name": "Normalize Conversation Payload",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [540, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, workflow: \"conversation-log\", timestamp: $json.timestamp } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "71ca1489-b9e2-4d2b-b2d5-a28e53ed2422",
+      "name": "Respond Conversation Logged",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [840, 300]
+    }
+  ],
+  "connections": {
+    "Conversation Log Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalize Conversation Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Conversation Payload": {
+      "main": [
+        [
+          {
+            "node": "Respond Conversation Logged",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
