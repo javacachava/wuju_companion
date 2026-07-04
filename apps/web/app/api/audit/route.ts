@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { auditCode } from "@/lib/ai";
+import { describeAiError, getAiClientErrorMessage, isAiQuotaError } from "@/lib/ai-errors";
 import { db } from "@/lib/db";
 import { triggerAuditCritical } from "@/lib/n8n";
 
@@ -52,7 +53,14 @@ export async function POST(request: Request) {
       return Response.json({ error: "Invalid request", issues: error.issues }, { status: 400 });
     }
 
-    console.error("[api/audit] failed", error);
-    return Response.json({ error: "Audit failed" }, { status: 500 });
+    console.error("[api/audit] failed:", describeAiError(error));
+
+    return Response.json(
+      {
+        error: "Audit failed",
+        message: getAiClientErrorMessage(error),
+      },
+      { status: isAiQuotaError(error) ? 503 : 500 },
+    );
   }
 }

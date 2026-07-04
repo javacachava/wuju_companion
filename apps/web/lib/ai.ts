@@ -155,7 +155,7 @@ export async function auditCode({
   personality,
 }: AuditCodeInput): Promise<AuditReport> {
   const result = await generateObject({
-    model: openai("gpt-4o"),
+    model: openai("gpt-4o-mini"),
     maxTokens: 1500,
     schema: AuditReportSchema,
     system: buildAuditSystemPrompt(personality),
