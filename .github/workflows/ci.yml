@@ -9,6 +9,11 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: "file:./dev.db"
+      OPENAI_API_KEY: "ci-openai-key"
+      ELEVENLABS_API_KEY: "ci-elevenlabs-key"
+      NEXT_PUBLIC_APP_URL: "http://localhost:3000"
     steps:
       - uses: actions/checkout@v4
 
@@ -24,8 +29,6 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm --filter web prisma generate
-        env:
-          DATABASE_URL: "file:./dev.db"
 
       - run: pnpm lint
 
