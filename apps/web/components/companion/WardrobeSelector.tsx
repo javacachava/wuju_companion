@@ -23,11 +23,11 @@ const CATEGORIES: Array<{
 
 export function WardrobeSelector({ selected, onSelect }: WardrobeSelectorProps) {
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-        Wardrobe
-      </h2>
-      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
+    <section className="rounded-2xl border border-slate-200 bg-white p-3">
+      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+        Filtros
+      </p>
+      <nav className="mt-3 space-y-1">
         {CATEGORIES.map(({ key, label, Icon }) => {
           const active = selected === key;
           return (
@@ -35,10 +35,10 @@ export function WardrobeSelector({ selected, onSelect }: WardrobeSelectorProps) 
               key={key}
               type="button"
               onClick={() => onSelect(key)}
-              className={`flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm transition ${
+              className={`flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm transition ${
                 active
-                  ? "border-blue-300 bg-blue-50 text-blue-700"
-                  : "border-slate-200 text-slate-700 hover:bg-slate-50"
+                  ? "bg-fuchsia-700 font-medium text-white"
+                  : "text-slate-700 hover:bg-slate-100"
               }`}
             >
               <Icon className="h-4 w-4" />
@@ -46,7 +46,7 @@ export function WardrobeSelector({ selected, onSelect }: WardrobeSelectorProps) 
             </button>
           );
         })}
-      </div>
+      </nav>
     </section>
   );
 }
