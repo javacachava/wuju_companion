@@ -1,0 +1,75 @@
+// Fuente de verdad: docs/CONTRATOS.md sección "Modelo de datos (Prisma)"
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Character {
+  id        String   @id @default(cuid())
+  userName  String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  hairId      String?
+  eyesId      String?
+  mouthId     String?
+  accessoryId String?
+  clothingId  String?
+
+  personality String @default("amigable")
+  voiceId     String @default("21m00Tcm4TlvDq8ikWAM")
+
+  messages  Message[]
+  inventory InventoryItem[]
+  skills    ActiveSkill[]
+}
+
+model Part {
+  id        String  @id @default(cuid())
+  category  String // 'hair' | 'eyes' | 'mouth' | 'accessory' | 'clothing'
+  name      String
+  imageUrl  String // /parts/hair-rizado.png
+  isPremium Boolean @default(false)
+  price     Int     @default(0)
+
+  inventoryItems InventoryItem[]
+}
+
+model InventoryItem {
+  id          String   @id @default(cuid())
+  characterId String
+  partId      String
+  acquiredAt  DateTime @default(now())
+
+  character Character @relation(fields: [characterId], references: [id])
+  part      Part      @relation(fields: [partId], references: [id])
+
+  @@unique([characterId, partId])
+}
+
+model Message {
+  id          String   @id @default(cuid())
+  characterId String
+  role        String // 'user' | 'assistant'
+  content     String
+  skillUsed   String? // 'code-guardian' | 'chat-base'
+  createdAt   DateTime @default(now())
+
+  character Character @relation(fields: [characterId], references: [id])
+}
+
+model ActiveSkill {
+  id          String   @id @default(cuid())
+  characterId String
+  skillKey    String // 'chat-base' | 'code-guardian'
+  enabledAt   DateTime @default(now())
+
+  character Character @relation(fields: [characterId], references: [id])
+
+  @@unique([characterId, skillKey])
+}
