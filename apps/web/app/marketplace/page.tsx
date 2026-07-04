@@ -1,3 +1,10 @@
+import { Suspense } from "react";
+import { MarketplaceClient } from "@/components/marketplace/MarketplaceClient";
+
 export default function MarketplacePage() {
-  return <div>Marketplace — Dev B</div>;
+  return (
+    <Suspense fallback={null}>
+      <MarketplaceClient />
+    </Suspense>
+  );
 }
