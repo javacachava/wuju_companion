@@ -11,7 +11,10 @@ type PartDetailModalProps = {
   acquiring: boolean;
   canAcquire: boolean;
   onClose: () => void;
-  onAcquire: (part: MarketplacePart) => void;
+  /** Parte gratis: se agrega directo al inventario. */
+  onAcquireFree: (part: MarketplacePart) => void;
+  /** Parte de pago: abre el checkout. */
+  onCheckout: (part: MarketplacePart) => void;
 };
 
 export function PartDetailModal({
@@ -19,7 +22,8 @@ export function PartDetailModal({
   acquiring,
   canAcquire,
   onClose,
-  onAcquire,
+  onAcquireFree,
+  onCheckout,
 }: PartDetailModalProps) {
   useEffect(() => {
     if (!part) return;
@@ -32,6 +36,8 @@ export function PartDetailModal({
   }, [part, onClose]);
 
   if (!part) return null;
+
+  const isPaid = part.price > 0;
 
   return (
     <div
@@ -78,7 +84,7 @@ export function PartDetailModal({
           </p>
 
           <p className="text-sm font-medium text-slate-700">
-            {part.price > 0 ? (
+            {isPaid ? (
               <>
                 Precio: {part.price} <span className="text-slate-400">monedas de demo</span>
               </>
@@ -91,12 +97,16 @@ export function PartDetailModal({
         <div className="border-t border-slate-100 px-5 py-4">
           <button
             type="button"
-            onClick={() => onAcquire(part)}
+            onClick={() => (isPaid ? onCheckout(part) : onAcquireFree(part))}
             disabled={acquiring || !canAcquire}
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {acquiring ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {acquiring ? "Agregando..." : "Agregar al inventario"}
+            {isPaid
+              ? `Comprar por ${part.price} monedas`
+              : acquiring
+                ? "Agregando..."
+                : "Agregar gratis"}
           </button>
           {!canAcquire ? (
             <p className="mt-2 text-center text-xs text-slate-400">

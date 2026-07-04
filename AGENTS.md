@@ -15,8 +15,8 @@ Es un producto real, no una demo — pero este repo es el MVP de hackathon de 24
 - **IA:** Vercel AI SDK con OpenAI/Codex (streaming)
 - **Voz:** ElevenLabs API
 - **Datos:** SQLite + Prisma ORM
-- **Automatización:** n8n self-hosted (Railway) para el track n8n
-- **Deploy:** Vercel
+- **Automatización:** n8n Cloud (cupón Pro del hackathon) o Docker en el VPS, para el track n8n
+- **Deploy:** VPS propio (`next start` + pm2 + Caddy). SQLite necesita disco persistente — no serverless
 - **Package manager:** pnpm
 
 ## Estructura del monorepo

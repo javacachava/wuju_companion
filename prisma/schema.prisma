@@ -24,6 +24,8 @@ model Character {
   personality String @default("amigable")
   voiceId     String @default("21m00Tcm4TlvDq8ikWAM")
 
+  coins Int @default(1000) // saldo de monedas de demo (moneda in-app, no dinero real)
+
   messages  Message[]
   inventory InventoryItem[]
   skills    ActiveSkill[]

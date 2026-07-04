@@ -1,14 +1,32 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
-const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
+function getMetadataBase() {
+  try {
+    return new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000");
+  } catch {
+    return new URL("http://localhost:3000");
+  }
+}
 
 export const metadata: Metadata = {
-  title: "El Compañero",
+  metadataBase: getMetadataBase(),
+  title: "El Compañero — Tu asistente libre, con cara y voz",
   description:
     "Un compañero libre. La cara y voz que vos elijas. Para el trabajo que sea.",
+  openGraph: {
+    title: "El Compañero — Tu asistente libre, con cara y voz",
+    description:
+      "Un compañero libre. La cara y voz que vos elijas. Para el trabajo que sea.",
+    images: ["/parts/placeholder.png"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "El Compañero — Tu asistente libre, con cara y voz",
+    description:
+      "Un compañero libre. La cara y voz que vos elijas. Para el trabajo que sea.",
+    images: ["/parts/placeholder.png"],
+  },
 };
 
 export default function RootLayout({
@@ -18,9 +36,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <body className={`${inter.variable} ${mono.variable} font-sans antialiased`}>
-        {children}
-      </body>
+      <body className="font-sans antialiased">{children}</body>
     </html>
   );
 }

@@ -1,6 +1,6 @@
 # N8N
 
-> Workflows de n8n para el track "Best Use of n8n". Dev D implementa esto en Railway.
+> Workflows de n8n para el track "Best Use of n8n". Dev D implementa esto en n8n Cloud (cupón del hackathon) o en el VPS del equipo.
 
 ## Filosofía
 
@@ -14,24 +14,39 @@ Ambos se disparan por webhook desde los endpoints del backend.
 
 ## Setup inicial
 
-### 1. Desplegar n8n en Railway
+### 1. Levantar n8n
 
-Railway ofrece una plantilla oficial de n8n con Docker. Pasos:
+**Opción A (recomendada): n8n Cloud con el cupón del hackathon.**
+
+1. Login en [n8n.io](https://n8n.io) con el correo del evento
+2. Upgrade a Pro (Mensual) → "Agregar descuento" → aplicar el cupón del builder pack
+3. Anotar la URL de la instancia: `https://<tu-instancia>.app.n8n.cloud`
+
+Cero mantenimiento, HTTPS incluido, webhooks públicos de una.
+
+**Opción B: Docker en el VPS del equipo.**
 
 ```bash
-# En Railway dashboard
-1. New Project → Deploy from Template → n8n
-2. Configurar variables:
-   - N8N_BASIC_AUTH_ACTIVE=true
-   - N8N_BASIC_AUTH_USER=<usuario del equipo>
-   - N8N_BASIC_AUTH_PASSWORD=<password del equipo>
-   - WEBHOOK_URL=<URL pública generada por Railway>
-3. Deploy
+docker run -d --name n8n --restart unless-stopped \
+  -p 5678:5678 \
+  -e N8N_BASIC_AUTH_ACTIVE=true \
+  -e N8N_BASIC_AUTH_USER=<usuario del equipo> \
+  -e N8N_BASIC_AUTH_PASSWORD=<password del equipo> \
+  -e WEBHOOK_URL=https://n8n.<dominio-del-equipo> \
+  -v n8n_data:/home/node/.n8n \
+  n8nio/n8n
 ```
 
-Guardar en `.env` del proyecto principal:
+Y en el Caddyfile del VPS:
+```
+n8n.<dominio-del-equipo> {
+    reverse_proxy localhost:5678
+}
+```
+
+Guardar en `.env` del proyecto principal (con la URL que corresponda a la opción elegida):
 ```env
-N8N_WEBHOOK_URL=https://<railway-url>/webhook
+N8N_WEBHOOK_URL=https://<n8n-url>/webhook
 N8N_WEBHOOK_SECRET=<generar una cadena random de 32+ chars>
 ```
 
@@ -53,7 +68,7 @@ Cuando el Guardián de código encuentra al menos un hallazgo `critical`, notifi
 - **Tipo:** Webhook
 - **Method:** POST
 - **Path:** `audit-critical`
-- **URL final:** `<railway-url>/webhook/audit-critical`
+- **URL final:** `<n8n-url>/webhook/audit-critical`
 
 ### Payload esperado (viene del backend)
 ```json
@@ -95,7 +110,7 @@ X-Companero-Secret: <secret>
 ### Prueba manual
 
 ```bash
-curl -X POST https://<railway-url>/webhook/audit-critical \
+curl -X POST https://<n8n-url>/webhook/audit-critical \
   -H "Content-Type: application/json" \
   -H "X-Companero-Secret: <secret>" \
   -d '{
@@ -117,7 +132,7 @@ Cada mensaje del chat se registra en un log externo (Google Sheets). Este workfl
 - **Tipo:** Webhook
 - **Method:** POST
 - **Path:** `conversation-log`
-- **URL final:** `<railway-url>/webhook/conversation-log`
+- **URL final:** `<n8n-url>/webhook/conversation-log`
 
 ### Payload esperado
 ```json
@@ -160,7 +175,7 @@ No perder tiempo peleándose con OAuth de Google si no arranca en 15 minutos.
 ### Prueba manual
 
 ```bash
-curl -X POST https://<railway-url>/webhook/conversation-log \
+curl -X POST https://<n8n-url>/webhook/conversation-log \
   -H "Content-Type: application/json" \
   -H "X-Companero-Secret: <secret>" \
   -d '{

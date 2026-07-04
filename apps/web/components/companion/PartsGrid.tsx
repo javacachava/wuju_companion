@@ -72,7 +72,20 @@ export function PartsGrid({ category }: PartsGridProps) {
                   : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
               } disabled:cursor-wait disabled:opacity-70`}
             >
-              <span className="line-clamp-3">{updating ? "Guardando..." : item.name}</span>
+              {updating ? (
+                <span className="line-clamp-3">Guardando...</span>
+              ) : (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element -- miniaturas locales de /public/parts */}
+                  <img
+                    src={item.imageUrl}
+                    alt=""
+                    className="mx-auto h-12 w-12 object-contain"
+                    draggable={false}
+                  />
+                  <span className="mt-1 block truncate">{item.name}</span>
+                </>
+              )}
               {active ? (
                 <Check className="absolute right-2 top-2 h-3.5 w-3.5" />
               ) : null}

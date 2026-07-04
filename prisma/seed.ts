@@ -247,6 +247,7 @@ async function main() {
       clothingId: clothing.id,
       personality: "amigable",
       voiceId: "21m00Tcm4TlvDq8ikWAM",
+      coins: 1000,
     },
     create: {
       userName: "demo",
@@ -257,6 +258,7 @@ async function main() {
       clothingId: clothing.id,
       personality: "amigable",
       voiceId: "21m00Tcm4TlvDq8ikWAM",
+      coins: 1000,
     },
   });
 

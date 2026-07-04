@@ -8,8 +8,9 @@ import type {
   PartCategory,
 } from "@/lib/companion/types";
 import { AssistantData } from "./AssistantData";
+import { ChatPanel } from "./ChatPanel";
 import { CharacterInfo } from "./CharacterInfo";
-import { CharacterProvider } from "./CharacterContext";
+import { CharacterProvider, type CharacterState } from "./CharacterContext";
 import { CharacterStage } from "./CharacterStage";
 import { PartsGrid } from "./PartsGrid";
 import { WardrobeSelector } from "./WardrobeSelector";
@@ -22,6 +23,9 @@ type CompanionAppProps = {
 export function CompanionApp({ character, onCharacterChange }: CompanionAppProps) {
   const [selectedCategory, setSelectedCategory] = useState<PartCategory>("hair");
   const [inventory, setInventory] = useState<CharacterInventory | null>(null);
+  const [characterState, setCharacterState] = useState<CharacterState>("idle");
+  const [codeGuardianEnabled, setCodeGuardianEnabled] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -56,14 +60,47 @@ export function CompanionApp({ character, onCharacterChange }: CompanionAppProps
     [character, onCharacterChange],
   );
 
+  const handleToggleCodeGuardian = useCallback(
+    async (enabled: boolean) => {
+      const response = await fetch("/api/skills/toggle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          characterId: character.id,
+          skillKey: "code-guardian",
+          enabled,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("skill_toggle_failed");
+      }
+
+      setCodeGuardianEnabled(enabled);
+    },
+    [character.id],
+  );
+
   const contextValue = useMemo(
     () => ({
       character,
       inventory,
+      characterState,
+      codeGuardianEnabled,
       setCharacter: onCharacterChange,
+      setCharacterState,
       equipPart: handleEquipPart,
+      toggleCodeGuardian: handleToggleCodeGuardian,
     }),
-    [character, handleEquipPart, inventory, onCharacterChange],
+    [
+      character,
+      characterState,
+      codeGuardianEnabled,
+      handleEquipPart,
+      handleToggleCodeGuardian,
+      inventory,
+      onCharacterChange,
+    ],
   );
 
   return (
@@ -82,8 +119,16 @@ export function CompanionApp({ character, onCharacterChange }: CompanionAppProps
 
           <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <AssistantData />
-            <CharacterInfo />
+            <CharacterInfo onOpenChat={() => setChatOpen((current) => !current)} />
           </section>
+
+          {chatOpen ? (
+            <ChatPanel
+              character={character}
+              codeGuardianEnabled={codeGuardianEnabled}
+              onCharacterStateChange={setCharacterState}
+            />
+          ) : null}
         </div>
       </main>
     </CharacterProvider>

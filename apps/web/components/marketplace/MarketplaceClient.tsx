@@ -7,15 +7,17 @@ import { ArrowLeft, Coins, Loader2 } from "lucide-react";
 import {
   acquirePart,
   getMarketplaceParts,
+  getWallet,
+  InsufficientFundsError,
   type MarketplacePart,
 } from "@/lib/marketplace/api";
 import { FILTERS, isMarketplaceFilter, type MarketplaceFilter } from "./partMeta";
 import { PartCard } from "./PartCard";
 import { PartDetailModal } from "./PartDetailModal";
+import { CheckoutModal } from "./CheckoutModal";
 import { Toast } from "./Toast";
 
 const CHARACTER_ID_KEY = "characterId";
-const WALLET_START = 1000;
 
 type LoadState = "loading" | "ready" | "error";
 
@@ -26,9 +28,12 @@ export function MarketplaceClient() {
   const [characterId, setCharacterId] = useState<string | null>(null);
   const [parts, setParts] = useState<MarketplacePart[]>([]);
   const [loadState, setLoadState] = useState<LoadState>("loading");
-  const [coins, setCoins] = useState<number>(WALLET_START);
+  const [coins, setCoins] = useState<number>(0);
   const [selected, setSelected] = useState<MarketplacePart | null>(null);
+  const [checkoutPart, setCheckoutPart] = useState<MarketplacePart | null>(null);
   const [acquiring, setAcquiring] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -46,9 +51,13 @@ export function MarketplaceClient() {
     const load = async () => {
       setLoadState("loading");
       try {
-        const data = await getMarketplaceParts(characterId ?? undefined);
+        const [data, wallet] = await Promise.all([
+          getMarketplaceParts(characterId ?? undefined),
+          characterId ? getWallet(characterId) : Promise.resolve(0),
+        ]);
         if (!active) return;
         setParts(data);
+        setCoins(wallet);
         setLoadState("ready");
       } catch (error) {
         console.error("[marketplace] no se pudo cargar el catálogo", error);
@@ -94,26 +103,67 @@ export function MarketplaceClient() {
     [parts, filter],
   );
 
-  const handleAcquire = useCallback(
+  const finishAcquisition = useCallback(
+    (part: MarketplacePart, nextCoins: number) => {
+      setCoins(nextCoins);
+      setParts((prev) => prev.filter((item) => item.id !== part.id));
+      showToast("Agregado! Ya está en tu wardrobe.");
+    },
+    [showToast],
+  );
+
+  // Parte gratis: sin checkout, se agrega directo.
+  const handleAcquireFree = useCallback(
     async (part: MarketplacePart) => {
       if (!characterId) return;
-
       setAcquiring(true);
       try {
-        await acquirePart(characterId, part.id);
-        // Pago mockeado: descontamos monedas de demo sin bloquear nunca la compra.
-        setCoins((prev) => Math.max(0, prev - part.price));
-        setParts((prev) => prev.filter((item) => item.id !== part.id));
+        const { coins: nextCoins } = await acquirePart(characterId, part.id);
         setSelected(null);
-        showToast("Agregado! Ya está en tu wardrobe.");
+        finishAcquisition(part, nextCoins);
       } catch (error) {
-        console.error("[marketplace] no se pudo agregar la parte", error);
+        console.error("[marketplace] no se pudo agregar la parte gratis", error);
         showToast("No se pudo agregar. Probá de nuevo.");
       } finally {
         setAcquiring(false);
       }
     },
-    [characterId, showToast],
+    [characterId, finishAcquisition, showToast],
+  );
+
+  const openCheckout = useCallback((part: MarketplacePart) => {
+    setSelected(null);
+    setServerError(null);
+    setCheckoutPart(part);
+  }, []);
+
+  // Parte de pago: se dispara desde el checkout tras validar la tarjeta.
+  const handlePay = useCallback(
+    async (part: MarketplacePart) => {
+      if (!characterId) return;
+      setProcessing(true);
+      setServerError(null);
+      try {
+        // Latencia simulada de "procesar el pago".
+        await new Promise((resolve) => setTimeout(resolve, 900));
+        const { coins: nextCoins } = await acquirePart(characterId, part.id);
+        setCheckoutPart(null);
+        finishAcquisition(part, nextCoins);
+      } catch (error) {
+        if (error instanceof InsufficientFundsError) {
+          setCoins(error.coins);
+          setServerError(
+            `Saldo insuficiente: tenés ${error.coins} y la parte cuesta ${error.price} monedas.`,
+          );
+        } else {
+          console.error("[marketplace] el pago falló", error);
+          setServerError("No se pudo procesar el pago. Probá de nuevo.");
+        }
+      } finally {
+        setProcessing(false);
+      }
+    },
+    [characterId, finishAcquisition],
   );
 
   return (
@@ -129,7 +179,7 @@ export function MarketplaceClient() {
           </Link>
           <span
             className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-sm font-semibold text-amber-700"
-            title="Monedas de demo — el pago es mockeado"
+            title="Monedas de demo — moneda in-app, no dinero real"
           >
             <Coins className="h-4 w-4" />
             {coins}
@@ -141,7 +191,7 @@ export function MarketplaceClient() {
             Marketplace del Compañero
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            Sumá partes a tu wardrobe. El pago es de demo: agregás y aparece al instante.
+            Sumá partes a tu wardrobe. El saldo se valida de verdad; el cobro es de demo.
           </p>
         </div>
 
@@ -198,7 +248,16 @@ export function MarketplaceClient() {
         acquiring={acquiring}
         canAcquire={Boolean(characterId)}
         onClose={() => setSelected(null)}
-        onAcquire={handleAcquire}
+        onAcquireFree={handleAcquireFree}
+        onCheckout={openCheckout}
+      />
+      <CheckoutModal
+        part={checkoutPart}
+        coins={coins}
+        processing={processing}
+        serverError={serverError}
+        onClose={() => setCheckoutPart(null)}
+        onPay={handlePay}
       />
       <Toast message={toast} />
     </main>

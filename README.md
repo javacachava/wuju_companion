@@ -15,8 +15,8 @@ Este repo es el MVP construido en 24 horas para el hackathon. El pack completo d
 
 ## Demo
 
-- **Web**: [companero.vercel.app](#) *(link pendiente hasta deploy final)*
-- **Repo**: [github.com/tu-org/companero](#)
+- **Web**: *(link pendiente hasta deploy final en el dominio del equipo)*
+- **Repo**: [github.com/javacachava/wuju_companion](https://github.com/javacachava/wuju_companion)
 - **Video demo**: embebido en la landing
 
 ## Qué hace
@@ -35,9 +35,9 @@ Este repo es el MVP construido en 24 horas para el hackathon. El pack completo d
 | Estilo | Tailwind CSS v4 + shadcn/ui + Framer Motion |
 | IA | Vercel AI SDK + OpenAI/Codex |
 | Voz | ElevenLabs API con cache |
-| Automatización | n8n self-hosted (Railway) |
+| Automatización | n8n (Cloud o Docker en el VPS) |
 | Datos | SQLite + Prisma ORM |
-| Hosting | Vercel |
+| Hosting | VPS propio (`next start` + pm2 + Caddy) |
 | Package manager | pnpm |
 
 ## Setup local
@@ -46,13 +46,13 @@ Este repo es el MVP construido en 24 horas para el hackathon. El pack completo d
 - Node.js 20+
 - pnpm 9+
 - Una cuenta con API keys de: OpenAI, ElevenLabs
-- (Opcional) Instancia de n8n corriendo en Railway o local
+- (Opcional) Instancia de n8n corriendo en n8n Cloud, el VPS o local
 
 ### Instalación
 
 ```bash
 # Clonar el repo
-git clone https://github.com/tu-org/companero.git
+git clone https://github.com/javacachava/wuju_companion.git
 cd companero
 
 # Instalar dependencias
@@ -81,7 +81,7 @@ ELEVENLABS_API_KEY=...
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 # Opcionales (para el track n8n)
-N8N_WEBHOOK_URL=https://your-instance.railway.app/webhook
+N8N_WEBHOOK_URL=https://your-instance.app.n8n.cloud/webhook
 N8N_WEBHOOK_SECRET=your-secret
 
 # Solo Dev B usa esta
@@ -192,7 +192,7 @@ Antes de abrir un PR:
 - **OpenAI** por Codex y GPT-4o
 - **ElevenLabs** por las voces
 - **n8n** por la infra de automatización
-- **Vercel** por el hosting y el AI SDK
+- **Vercel** por el AI SDK
 - **shadcn** por los componentes
 - El sketch original del compañero está en `docs/SKETCH.md` — ese cuaderno fue el punto de partida
 

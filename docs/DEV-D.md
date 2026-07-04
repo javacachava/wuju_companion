@@ -26,7 +26,7 @@ infra/n8n/                    ← workflows exportados
 - `POST /api/chat` con streaming del LLM (Codex/OpenAI)
 - `POST /api/audit` con response estructurado (usando `generateObject` de AI SDK)
 - `POST /api/tts` con ElevenLabs + cache
-- 2 workflows n8n desplegados en Railway y conectados vía webhooks
+- 2 workflows n8n desplegados (n8n Cloud o VPS) y conectados vía webhooks
 - Cache en memoria para audios repetidos
 
 ### No
@@ -37,10 +37,9 @@ infra/n8n/                    ← workflows exportados
 ## Fase 1 — Setup (H+0 a H+1)
 
 Antes que nada:
-1. Configurar Railway con la cuenta del equipo
-2. Desplegar n8n en Railway con Docker (hay plantilla oficial)
-3. Verificar que carga la UI de n8n
-4. Anotar la URL del webhook base
+1. Canjear el cupón Pro de n8n Cloud con el correo del evento (o levantar Docker en el VPS, ver `docs/N8N.md`)
+2. Verificar que carga la UI de n8n
+3. Anotar la URL del webhook base
 
 ## Prompts iniciales para Codex/Cursor
 
@@ -158,11 +157,10 @@ Y verificá que llegó al Discord.
 - **ElevenLabs Voice Lab** — elegí 3-4 voces buenas antes de arrancar y guardá los IDs
 - **n8n templates** — probablemente hay uno de webhook + Discord ya hecho
 - **Postman** o **Bruno** para probar endpoints sin frontend
-- **Railway CLI** — para deployar n8n y ver logs
 
 ## Checkpoints de tu progreso
 
-- **H+1:** n8n corriendo en Railway, primer webhook responde ping
+- **H+1:** n8n corriendo (Cloud o VPS), primer webhook responde ping
 - **H+2:** endpoint /api/chat funciona con streaming (probado con curl)
 - **H+4:** endpoint /api/audit devuelve JSON estructurado con casos de prueba
 - **H+6:** endpoint /api/tts funciona, cache implementado

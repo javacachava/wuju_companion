@@ -1,10 +1,26 @@
 "use client";
 
+import { Loader2, ShieldCheck } from "lucide-react";
+import { useState } from "react";
 import { useCharacter } from "./CharacterContext";
 
 export function AssistantData() {
-  const { character } = useCharacter();
+  const { character, codeGuardianEnabled, toggleCodeGuardian } = useCharacter();
+  const [saving, setSaving] = useState(false);
   const selectedAssistant = character.assistant;
+
+  const handleToggle = async () => {
+    if (saving) {
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await toggleCodeGuardian(!codeGuardianEnabled);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -40,10 +56,21 @@ export function AssistantData() {
         <span className="rounded-full bg-blue-50 px-2 py-1 text-xs text-blue-700">
           chat-base
         </span>
-        <span className="rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-600">
-          code-guardian (off)
-        </span>
       </div>
+
+      <button
+        type="button"
+        onClick={() => void handleToggle()}
+        disabled={saving}
+        className={`mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition ${
+          codeGuardianEnabled
+            ? "border-blue-300 bg-blue-50 text-blue-700"
+            : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+        } disabled:cursor-wait disabled:opacity-70`}
+      >
+        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+        {codeGuardianEnabled ? "Guardián activo" : "Activar Guardián"}
+      </button>
     </section>
   );
 }
