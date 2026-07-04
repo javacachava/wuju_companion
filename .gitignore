@@ -1,0 +1,33 @@
+# Dependencies
+node_modules
+
+# Next.js
+.next
+out
+
+# Build
+dist
+.turbo
+.vercel
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# DB
+*.db
+*.db-journal
+
+# OS / editor
+.DS_Store
+.vscode
+.idea
+*.log
+coverage
+
+# WSL download metadata
+*:Zone.Identifier
+
+# Local Claude Code state
+.claude/
