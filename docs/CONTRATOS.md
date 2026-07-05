@@ -2,6 +2,8 @@
 
 > Fuente de verdad de todos los endpoints, schemas y flujos. Si el código no coincide, se arregla el código.
 
+> **Nota:** la migración a escritorio (Fase 7 de `DESKTOP-MIGRATION-PLAN.md`, "Skill Registry") propone generalizar `/api/chat` y `/api/audit` a una ruta única `/api/skill/:skillKey`. La misma fase (sección 7.1) agrega un campo `personalityPrompt` (texto libre) a `CharacterTemplate` para que la personalidad sea producto real de marketplace, no un mapa hardcodeado — con curaduría obligatoria por el riesgo de prompt injection que eso abre. Mientras esa fase no se implemente, este documento sigue siendo la fuente de verdad tal cual está — cualquier cambio de contrato se hace primero acá, como siempre.
+
 ## Modelo de datos (Prisma)
 
 ### Character
@@ -86,7 +88,19 @@ model ActiveSkill {
 }
 ```
 
+### Cuentas y marketplace (agregados post-MVP inicial)
+
+- `User` (email único, `passwordHash` scrypt, nombre) y `Session` (token opaco, expiración 30 días) — auth propio sin terceros.
+- `Character.userId?` — personaje opcionalmente atado a una cuenta.
+- `CharacterTemplate` (catálogo de personajes vendibles: key, rol, voz, stats, `priceCents`, `personalityPrompt?` — Fase 7.1 de `DESKTOP-MIGRATION-PLAN.md`, texto libre de creador, nullable, requiere curaduría antes de publicar) y `Pack` (packs de capacidades: skills, `priceCents`, `available` para "próximamente").
+- `Order` + `OrderItem` (compras, `status: 'paid_simulated'`) y `Ownership` (qué producto posee cada usuario, único por `userId+productType+productId`).
+- Precios en **centavos USD** (`priceCents`; `Part.price` se interpreta en centavos). `0` = gratis.
+
+Schema completo en `prisma/schema.prisma`.
+
 ## Endpoints
+
+> Todos los endpoints de IA (`/api/chat`, `/api/audit`, `/api/tts`) y auth tienen **rate limiting por IP** en memoria (`lib/rate-limit.ts`): 20, 6, 15 y 10 req/min respectivamente. Devuelven `429` con header `Retry-After`.
 
 ### `POST /api/chat` — Conversación con el compañero
 **Dueño:** Dev D · **Consumidor:** Dev C
@@ -141,6 +155,19 @@ model ActiveSkill {
 `severity`: `"critical" | "high" | "medium" | "low"`
 
 Si hay al menos un finding `critical`, se dispara webhook a n8n al final.
+
+---
+
+### `POST /api/skill/:skillKey` — Skill Registry (Fase 7, aditivo)
+
+**Estado:** implementado como capa nueva, en paralelo a `/api/chat` y `/api/audit` — NO los reemplaza todavía. `ChatPanel.tsx` sigue llamando a las rutas de siempre. Documentado acá porque ya es contrato real, no solo plan.
+
+`skillKey` válido: `"chat-base" | "code-guardian"` (ver `lib/skills/registry.ts`). Cualquier otro valor → `404 { error: "unknown_skill" }`.
+
+**Request (`chat-base`):** `{ characterId, message }` → misma respuesta en streaming que `/api/chat`.
+**Request (`code-guardian`):** `{ characterId, code, language }` → mismo `AuditReport` que `/api/audit`.
+
+Agregar un pack nuevo (Fase 7) = agregar una entrada a `SKILL_REGISTRY`, no una ruta nueva.
 
 ---
 
@@ -263,6 +290,67 @@ Devuelve el saldo actual de monedas de demo del personaje.
 ```json
 { "error": "insufficient_funds", "coins": 100, "price": 450 }
 ```
+
+---
+
+### Autenticación — `POST /api/auth/register` · `POST /api/auth/login` · `POST /api/auth/logout` · `GET /api/auth/me`
+
+Auth propio sin terceros: email + contraseña (scrypt de `node:crypto`), sesión como token opaco
+en la tabla `Session` con cookie `companion_session` (httpOnly, secure en prod, sameSite lax, 30 días).
+
+**Register request:** `{ "email": "...", "name": "...", "password": "min 8 chars" }` → `201 { user }` (setea cookie). `409` si el email ya existe.
+**Login request:** `{ "email": "...", "password": "..." }` → `200 { user }` (setea cookie). `401` genérico (no filtra si el email existe).
+**Me:** → `{ "user": { id, email, name } | null }`.
+Register y login tienen rate limit por IP (10/min).
+
+Los personajes creados con sesión activa quedan atados al `User` (`Character.userId`); los huérfanos se adoptan al loguearse.
+
+---
+
+### `GET /api/marketplace/catalog` — Catálogo público unificado
+
+Sin auth (con sesión agrega `owned`). Devuelve personajes (`CharacterTemplate`), packs (`Pack`) y partes (`Part`) normalizados:
+
+```json
+{
+  "products": [
+    {
+      "productType": "character | pack | part",
+      "productId": "clx...",
+      "name": "Mentor Nova",
+      "description": "...",
+      "category": "rol | pack | hair/eyes/...",
+      "imageUrl": "/parts/... | null",
+      "avatar": "MN | null",
+      "priceCents": 499,
+      "isPremium": true,
+      "available": true,
+      "owned": false
+    }
+  ]
+}
+```
+
+`priceCents` en centavos USD; `0` = gratis. `available: false` = "próximamente" (no comprable).
+
+---
+
+### `POST /api/marketplace/checkout` — Compra de carrito (pago simulado)
+
+**Requiere sesión** (401 sin cookie). Los precios se recalculan SIEMPRE en el server; el cliente solo manda ids.
+
+**Request:** `{ "items": [{ "productType": "part|character|pack", "productId": "clx..." }] }` (1–50 ítems)
+
+**Response (200):**
+```json
+{ "orderId": "clx...", "totalCents": 999, "status": "paid_simulated", "items": [{ "name": "...", "priceCents": 499 }] }
+```
+
+**Comportamiento:**
+- Crea `Order` + `OrderItem[]` + `Ownership` en transacción. Ítems ya poseídos se filtran (no se cobran de nuevo); si todo era poseído → `409`.
+- Partes compradas se acreditan como `InventoryItem` al primer personaje del usuario, si tiene.
+- Packs con `available: false` → `409`.
+- **El pago es simulado** (`status: paid_simulated`): la tarjeta se valida en el front (Luhn/vencimiento/CVC) pero nunca viaja al server. Stripe + Connect (comisión a creadores) es post-MVP.
 
 ---
 

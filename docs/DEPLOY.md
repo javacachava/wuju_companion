@@ -2,6 +2,8 @@
 
 > Cómo se despliega El Compañero en producción: VPS propio + dominio del equipo, PostgreSQL para persistencia y DataMCP como gateway MCP seguro para herramientas de IA.
 
+> **Nota:** este mismo deploy es lo que la app de escritorio consume como cliente delgado (Fase 1 de `DESKTOP-MIGRATION-PLAN.md`) y donde queda el marketplace/login que el desktop enlaza (Fase 9). No se necesita infraestructura nueva para eso — es el mismo VPS.
+
 ## Arquitectura de producción
 
 ```

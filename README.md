@@ -155,12 +155,21 @@ Un asistente que ve tus archivos debería ser un asistente que podés leer.
 
 ## Roadmap
 
+### Ya implementado (post-MVP inicial)
+- ✅ Cuentas propias (email + contraseña, sesiones httpOnly, sin OAuth de terceros)
+- ✅ Marketplace público con carrito: personajes, packs y partes; checkout con pago simulado (`paid_simulated`)
+- ✅ Modelado de productos: `CharacterTemplate`, `Pack`, `Order`, `Ownership`
+- ✅ Rate limiting por IP en endpoints de IA y auth
+- ✅ PWA instalable (manifest + ícono)
+
 ### Post-hackathon (próximos 3 meses)
-- Autenticación real con Auth.js (GitHub, Google)
-- Pagos reales con Stripe + Stripe Connect para creadores
-- App de escritorio nativa con Tauri
-- Memoria semántica con pgvector
+- OAuth opcional (GitHub, Google) sobre el auth propio
+- Pagos reales con Stripe + Stripe Connect para creadores (hoy simulado)
+- **App de escritorio nativa con Tauri v2** — plan completo, fase por fase (voz, permisos reales del sistema, memoria semántica, multi-pack), en [`DESKTOP-MIGRATION-PLAN.md`](./DESKTOP-MIGRATION-PLAN.md)
 - Guardián de despliegue (conexión a GitHub + Supabase)
+- Portal de creadores con curaduría y dashboard de ventas
+
+> La migración a escritorio es donde "qué puede tocar" deja de ser un flag de app y pasa a ser un permiso real del sistema operativo — ver el plan detallado para el porqué de cada decisión técnica.
 
 ### Mediano plazo
 - Packs de marketing, diseño, negocios, estudio

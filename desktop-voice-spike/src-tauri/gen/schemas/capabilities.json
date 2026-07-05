@@ -1,0 +1,1 @@
+{"main-capability":{"identifier":"main-capability","description":"Disposable voice spike permissions for the main window.","local":true,"windows":["main"],"permissions":["core:default","mic-recorder:default","fs:allow-read-file",{"identifier":"fs:scope","allow":["$APPDATA/tauri-plugin-mic-recorder/*","$APPDATA/tauri-plugin-mic-recorder/**"]}]}}

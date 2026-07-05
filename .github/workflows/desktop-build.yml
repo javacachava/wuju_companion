@@ -1,0 +1,72 @@
+name: Desktop Build (Fase 6)
+
+# Disparo manual a propósito: apps/desktop todavía no tiene certificados de firma
+# reales (ver nota abajo), así que estos binarios NO son para distribución pública
+# todavía. Correr a mano cuando se quiera validar que el build multiplataforma
+# sigue andando, no en cada push (sería caro y ruidoso para un app no terminada).
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: ubuntu-latest
+          - platform: macos-latest
+          - platform: windows-latest
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar dependencias nativas (solo Ubuntu)
+        if: matrix.platform == 'ubuntu-latest'
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            pkg-config \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libasound2-dev
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build Tauri (apps/desktop) — SIN FIRMAR
+        uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: apps/desktop
+
+      # TODO Fase 6 pendiente (bloqueado en certificados/secrets reales, no en código):
+      # - macOS: certificado de firma de desarrollador Apple + notarización
+      #   (APPLE_CERTIFICATE, APPLE_CERTIFICATE_PASSWORD, APPLE_ID, APPLE_PASSWORD,
+      #   APPLE_TEAM_ID como GitHub Secrets).
+      # - Windows: certificado de firma de código (WINDOWS_CERTIFICATE,
+      #   WINDOWS_CERTIFICATE_PASSWORD).
+      # - tauri-plugin-updater con clave de firma de actualizaciones
+      #   (TAURI_SIGNING_PRIVATE_KEY).
+      # Sin esto los instaladores salen sin firmar: macOS Gatekeeper y Windows
+      # SmartScreen van a advertir al usuario. Válido para pruebas internas del
+      # equipo, no para distribución pública real.

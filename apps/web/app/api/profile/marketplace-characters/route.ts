@@ -1,8 +1,6 @@
 import { z } from "zod";
 
 import { db } from "@/lib/db";
-import { getSessionFromCookie } from "@/lib/auth/session";
-import { ensureCharacterForUser } from "@/lib/companion/server";
 
 const tagToneSchema = z.enum(["blue", "slate", "cyan", "gold", "rose", "green", "violet"]);
 
@@ -21,22 +19,15 @@ const marketplaceCharacterSchema = z.object({
 
 const saveSchema = z
   .object({
+    characterId: z.string().min(1),
     marketplaceCharacter: marketplaceCharacterSchema,
   })
   .strict();
 
-async function getAuthenticatedCharacterId() {
-  const session = await getSessionFromCookie();
-  if (!session) return null;
-  return ensureCharacterForUser(session.user.id, session.user.email);
-}
-
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const characterId = await getAuthenticatedCharacterId();
-    if (!characterId) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const url = new URL(request.url);
+    const characterId = z.string().min(1).parse(url.searchParams.get("characterId"));
 
     const items = await db.savedMarketplaceCharacter.findMany({
       where: { characterId },
@@ -57,16 +48,12 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = saveSchema.parse(await request.json());
-    const characterId = await getAuthenticatedCharacterId();
-    if (!characterId) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const payload = body.marketplaceCharacter;
+
     const item = await db.savedMarketplaceCharacter.upsert({
       where: {
         characterId_marketplaceCharacterId: {
-          characterId,
+          characterId: body.characterId,
           marketplaceCharacterId: payload.id,
         },
       },
@@ -82,7 +69,7 @@ export async function POST(request: Request) {
         isPopular: payload.isPopular ?? false,
       },
       create: {
-        characterId,
+        characterId: body.characterId,
         marketplaceCharacterId: payload.id,
         name: payload.name,
         category: payload.category,

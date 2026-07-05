@@ -2,6 +2,8 @@
 
 > Tu responsabilidad: toda la experiencia dentro del producto. Es la parte más visible del demo.
 
+> **Nota:** este frontend es el que se reutiliza casi intacto en la migración a escritorio (Fase 1 de `DESKTOP-MIGRATION-PLAN.md`) — `Character.tsx` y el resto de `/companion` corren igual dentro de Tauri, sin reescritura. No cambia nada de lo que sigue en esta doc, es contexto para más adelante.
+
 ## Tu carpeta
 
 ```

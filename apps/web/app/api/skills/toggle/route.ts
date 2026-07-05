@@ -1,11 +1,10 @@
 import { z } from "zod";
 
 import { db } from "@/lib/db";
-import { getSessionFromCookie } from "@/lib/auth/session";
-import { ensureCharacterForUser } from "@/lib/companion/server";
 
 const ToggleSkillSchema = z
   .object({
+    characterId: z.string().min(1),
     skillKey: z.enum(["chat-base", "code-guardian"]),
     enabled: z.boolean(),
   })
@@ -15,38 +14,40 @@ export async function POST(request: Request) {
   try {
     const body = ToggleSkillSchema.parse(await request.json());
 
-    const session = await getSessionFromCookie();
-    if (!session) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const character = await db.character.findUnique({
+      where: { id: body.characterId },
+      select: { id: true },
+    });
 
-    const characterId = await ensureCharacterForUser(session.user.id, session.user.email);
+    if (!character) {
+      return Response.json({ error: "Character not found" }, { status: 404 });
+    }
 
     if (body.enabled) {
       await db.activeSkill.upsert({
         where: {
           characterId_skillKey: {
-            characterId,
+            characterId: body.characterId,
             skillKey: body.skillKey,
           },
         },
         update: {},
         create: {
-          characterId,
+          characterId: body.characterId,
           skillKey: body.skillKey,
         },
       });
     } else {
       await db.activeSkill.deleteMany({
         where: {
-          characterId,
+          characterId: body.characterId,
           skillKey: body.skillKey,
         },
       });
     }
 
     const activeSkills = await db.activeSkill.findMany({
-      where: { characterId },
+      where: { characterId: body.characterId },
       orderBy: { enabledAt: "asc" },
     });
 

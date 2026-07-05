@@ -2,28 +2,26 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import {
-  getAuthSession,
+  createCharacter as createCharacterFromApi,
   getCharacter,
-  loginWithEmail,
-  logoutSession,
-  registerWithEmail,
   saveCharacter,
 } from "@/lib/companion/api";
 import type { CharacterProfile } from "@/lib/companion/types";
 
-type CompanionStatus = "checking" | "auth" | "ready";
+const CHARACTER_ID_KEY = "characterId";
+const CHARACTER_USER_NAME_KEY = "characterUserName";
+
+type CompanionStatus = "checking" | "onboarding" | "selecting" | "ready";
 
 type CompanionGlobalContextValue = {
   status: CompanionStatus;
   character: CharacterProfile | null;
-  userEmail: string | null;
   isLauncherOpen: boolean;
   openLauncher: () => void;
   closeLauncher: () => void;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
+  createCharacter: (userName: string) => Promise<void>;
   updateCharacter: (character: CharacterProfile) => void;
+  completeSelection: () => Promise<void>;
 };
 
 const CompanionGlobalContext = createContext<CompanionGlobalContextValue | null>(null);
@@ -35,34 +33,30 @@ type CompanionGlobalProviderProps = {
 export function CompanionGlobalProvider({ children }: CompanionGlobalProviderProps) {
   const [status, setStatus] = useState<CompanionStatus>("checking");
   const [character, setCharacter] = useState<CharacterProfile | null>(null);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [isLauncherOpen, setIsLauncherOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
 
     const loadCharacter = async () => {
-      const session = await getAuthSession().catch(() => ({ authenticated: false as const }));
-      if (!active) return;
-
-      if (!session.authenticated) {
-        setUserEmail(null);
-        setCharacter(null);
-        setStatus("auth");
+      const cachedUserName = localStorage.getItem(CHARACTER_USER_NAME_KEY);
+      if (!cachedUserName) {
+        localStorage.removeItem(CHARACTER_ID_KEY);
+        if (active) setStatus("onboarding");
         return;
       }
 
       try {
-        const existing = await getCharacter();
+        const existing = await getCharacter(cachedUserName);
         if (!active) return;
 
-        setUserEmail(session.user.email);
+        localStorage.setItem(CHARACTER_ID_KEY, existing.id);
         setCharacter(existing);
-        setStatus("ready");
+        setStatus(existing.assistant ? "ready" : "selecting");
       } catch {
-        setUserEmail(null);
-        setCharacter(null);
-        if (active) setStatus("auth");
+        localStorage.removeItem(CHARACTER_ID_KEY);
+        localStorage.removeItem(CHARACTER_USER_NAME_KEY);
+        if (active) setStatus("onboarding");
       }
     };
 
@@ -81,62 +75,44 @@ export function CompanionGlobalProvider({ children }: CompanionGlobalProviderPro
     setIsLauncherOpen(false);
   }, []);
 
-  const login = useCallback(async (email: string, password: string) => {
-    await loginWithEmail(email, password);
-    const next = await getCharacter();
-    setUserEmail(email.trim().toLowerCase());
+  const createCharacter = useCallback(async (userName: string) => {
+    const next = await createCharacterFromApi(userName);
+    localStorage.setItem(CHARACTER_USER_NAME_KEY, next.userName);
+    localStorage.setItem(CHARACTER_ID_KEY, next.id);
     setCharacter(next);
-    setStatus("ready");
-  }, []);
-
-  const register = useCallback(async (email: string, password: string) => {
-    await registerWithEmail(email, password);
-    const next = await getCharacter();
-    setUserEmail(email.trim().toLowerCase());
-    setCharacter(next);
-    setStatus("ready");
+    setStatus("selecting");
   }, []);
 
   const updateCharacter = useCallback((next: CharacterProfile) => {
     setCharacter(next);
   }, []);
 
-  const logout = useCallback(async () => {
-    await logoutSession();
-    setUserEmail(null);
-    setCharacter(null);
-    setStatus("auth");
-    setIsLauncherOpen(false);
-  }, []);
-
-  useEffect(() => {
+  const completeSelection = useCallback(async () => {
     if (!character?.assistant) return;
-    void saveCharacter(character);
+    await saveCharacter(character);
+    setStatus("ready");
+    setIsLauncherOpen(false);
   }, [character]);
 
   const value = useMemo<CompanionGlobalContextValue>(
     () => ({
       status,
       character,
-      userEmail,
       isLauncherOpen,
       openLauncher,
       closeLauncher,
-      login,
-      register,
-      logout,
+      createCharacter,
       updateCharacter,
+      completeSelection,
     }),
     [
       character,
       closeLauncher,
+      completeSelection,
+      createCharacter,
       isLauncherOpen,
-      login,
       openLauncher,
-      logout,
-      register,
       status,
-      userEmail,
       updateCharacter,
     ],
   );

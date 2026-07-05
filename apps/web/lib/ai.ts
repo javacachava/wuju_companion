@@ -1,3 +1,4 @@
+import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
 import { generateObject, streamText } from "ai";
 import { z } from "zod";
@@ -7,6 +8,39 @@ import { env } from "@/lib/env";
 const openai = createOpenAI({
   apiKey: env.OPENAI_API_KEY,
 });
+
+// Fase 5 de DESKTOP-MIGRATION-PLAN.md: capa multi-provider, agnóstica (sección 2.3).
+// Sin `provider`, el comportamiento es EXACTAMENTE el de siempre (team key, OpenAI) —
+// esto es aditivo, no rompe /api/chat ni /api/audit del MVP web actual.
+export type LlmProviderConfig = { apiKey: string };
+
+function detectProviderKind(apiKey: string): "anthropic" | "openai" {
+  return apiKey.startsWith("sk-ant-") ? "anthropic" : "openai";
+}
+
+function resolveChatModel(provider?: LlmProviderConfig) {
+  if (!provider) {
+    return openai("gpt-4o-mini");
+  }
+
+  if (detectProviderKind(provider.apiKey) === "anthropic") {
+    return createAnthropic({ apiKey: provider.apiKey })("claude-haiku-4-5-20251001");
+  }
+
+  return createOpenAI({ apiKey: provider.apiKey })("gpt-4o-mini");
+}
+
+function resolveAuditModel(provider?: LlmProviderConfig) {
+  if (!provider) {
+    return openai("gpt-4o-mini");
+  }
+
+  if (detectProviderKind(provider.apiKey) === "anthropic") {
+    return createAnthropic({ apiKey: provider.apiKey })("claude-sonnet-5");
+  }
+
+  return createOpenAI({ apiKey: provider.apiKey })("gpt-4o-mini");
+}
 
 const personalityDescriptions: Record<string, string> = {
   amigable: "Calido, cercano, usa buen humor moderado.",
@@ -47,12 +81,15 @@ type ChatWithCompanionInput = {
   personality: string;
   lastMessages: ChatHistoryMessage[];
   onFinish?: (assistantMessage: string) => Promise<void>;
+  /** BYO-key opcional (sección 2.3 del plan desktop). Sin esto, usa la key de equipo. */
+  provider?: LlmProviderConfig;
 };
 
 type AuditCodeInput = {
   code: string;
   language: string;
   personality: string;
+  provider?: LlmProviderConfig;
 };
 
 function describePersonality(personality: string) {
@@ -132,9 +169,10 @@ export function chatWithCompanion({
   personality,
   lastMessages,
   onFinish,
+  provider,
 }: ChatWithCompanionInput) {
   return streamText({
-    model: openai("gpt-4o-mini"),
+    model: resolveChatModel(provider),
     maxTokens: 300,
     system: buildChatSystemPrompt(characterName, personality, lastMessages),
     messages: [
@@ -153,9 +191,10 @@ export async function auditCode({
   code,
   language,
   personality,
+  provider,
 }: AuditCodeInput): Promise<AuditReport> {
   const result = await generateObject({
-    model: openai("gpt-4o-mini"),
+    model: resolveAuditModel(provider),
     maxTokens: 1500,
     schema: AuditReportSchema,
     system: buildAuditSystemPrompt(personality),

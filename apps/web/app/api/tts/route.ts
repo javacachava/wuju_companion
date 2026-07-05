@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { synthesizeSpeech } from "@/lib/tts";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 const TtsRequestSchema = z
   .object({
@@ -10,6 +11,9 @@ const TtsRequestSchema = z
   .strict();
 
 export async function POST(request: Request) {
+  const limited = enforceRateLimit("tts", request);
+  if (limited) return limited;
+
   try {
     const body = TtsRequestSchema.parse(await request.json());
     const audio = await synthesizeSpeech(body.text, body.voiceId);

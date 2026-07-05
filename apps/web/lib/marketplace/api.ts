@@ -1,28 +1,33 @@
-import type { PartCategory } from "@/lib/companion/types";
+export type ProductType = "part" | "character" | "pack";
 
-export type MarketplacePart = {
-  id: string;
-  category: PartCategory;
+export type CatalogProduct = {
+  productType: ProductType;
+  productId: string;
   name: string;
-  imageUrl: string;
+  description: string;
+  category: string | null;
+  imageUrl: string | null;
+  avatar: string | null;
+  priceCents: number;
   isPremium: boolean;
-  price: number;
+  available: boolean;
+  owned: boolean;
 };
 
-export type AcquireResult = {
-  coins: number;
+export type CheckoutResult = {
+  orderId: string;
+  totalCents: number;
+  status: string;
+  items: Array<{ name: string; priceCents: number }>;
 };
 
-/** Error de saldo insuficiente devuelto por el server (HTTP 402). */
-export class InsufficientFundsError extends Error {
-  readonly coins: number;
-  readonly price: number;
+export class ApiError extends Error {
+  readonly status: number;
 
-  constructor(coins: number, price: number) {
-    super("insufficient_funds");
-    this.name = "InsufficientFundsError";
-    this.coins = coins;
-    this.price = price;
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
   }
 }
 
@@ -30,43 +35,24 @@ async function readJson<T>(input: RequestInfo | URL, init?: RequestInit): Promis
   const response = await fetch(input, init);
 
   if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    throw new Error(`Marketplace API ${response.status}: ${body.slice(0, 160)}`);
+    const data = (await response.json().catch(() => ({}))) as { error?: string };
+    throw new ApiError(response.status, data.error ?? `Marketplace API ${response.status}`);
   }
 
   return response.json() as Promise<T>;
 }
 
-export async function getMarketplaceParts(characterId?: string): Promise<MarketplacePart[]> {
-  const query = characterId ? `?characterId=${encodeURIComponent(characterId)}` : "";
-  return readJson<MarketplacePart[]>(`/api/marketplace/parts${query}`);
+export async function getCatalog(): Promise<CatalogProduct[]> {
+  const data = await readJson<{ products: CatalogProduct[] }>("/api/marketplace/catalog");
+  return data.products;
 }
 
-export async function getWallet(): Promise<number> {
-  const { coins } = await readJson<{ coins: number }>(`/api/marketplace/wallet`);
-  return coins;
-}
-
-export async function acquirePart(partId: string): Promise<AcquireResult> {
-  const response = await fetch(`/api/marketplace/acquire`, {
+export async function checkoutCart(
+  items: Array<{ productType: ProductType; productId: string }>,
+): Promise<CheckoutResult> {
+  return readJson<CheckoutResult>("/api/marketplace/checkout", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ partId }),
+    body: JSON.stringify({ items }),
   });
-
-  if (response.status === 402) {
-    const data = (await response.json().catch(() => ({}))) as {
-      coins?: number;
-      price?: number;
-    };
-    throw new InsufficientFundsError(data.coins ?? 0, data.price ?? 0);
-  }
-
-  if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    throw new Error(`Marketplace API ${response.status}: ${body.slice(0, 160)}`);
-  }
-
-  const data = (await response.json()) as { coins: number };
-  return { coins: data.coins };
 }

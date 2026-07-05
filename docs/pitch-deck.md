@@ -55,3 +55,7 @@ Cursor es velocidad. ChatGPT es respuesta. Character.ai es compañía. El Compa�
 ## 10. Cierre
 
 Este MVP empieza por desarrollo. La arquitectura permite crecer hacia marketing, diseño, negocio y estudio sin cambiar el cascarón.
+
+## Nota técnica
+
+"Permisos granulares" (slide 4) hoy es un flag de aplicación, no un permiso real del sistema operativo. Plan concreto para que sea literal en `DESKTOP-MIGRATION-PLAN.md` (raíz del repo) — no presentarlo como ya construido.

@@ -2,6 +2,8 @@
 
 > Tu responsabilidad: todo lo que el jurado y el público ven ANTES de entrar al producto.
 
+> **Nota:** cuando exista instalador de escritorio (Fase 6 de `DESKTOP-MIGRATION-PLAN.md`), la landing suma el link de descarga. No lo agregues todavía, salvo que se pida explícitamente esa fase.
+
 ## Tu carpeta
 
 ```

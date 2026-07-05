@@ -140,6 +140,14 @@ Antes de trabajar en un endpoint/componente: leer `docs/CONTRATOS.md`, después 
 - Base de datos vectorial — memoria es JSON simple con últimas 20 interacciones.
 - Multi-proveedor de LLM — solo OpenAI/Codex.
 
+Estas exclusiones rigen el **MVP web** (`apps/web/`) descrito en este documento. La migración a escritorio (Tauri, multi-proveedor vía BYO-key, memoria semántica) es una evolución posterior, planificada por separado — ver siguiente sección. No implementar nada de esa migración salvo que se pida explícitamente empezar una fase concreta.
+
+## Migración a escritorio (planificada, no iniciada)
+
+Existe un plan completo y detallado para migrar El Compañero a una app de escritorio nativa (Tauri v2), en **[`DESKTOP-MIGRATION-PLAN.md`](./DESKTOP-MIGRATION-PLAN.md)** (raíz del repo). Ese documento es la fuente de verdad para esa migración — 10 fases (0 a 9), decisiones de arquitectura (cliente delgado, split `invoke()`/HTTP, BYO-key agnóstico de proveedor de LLM, Context Builder, economía de tokens) y qué se descartó del plan original y por qué.
+
+Si te piden trabajar en algo de la migración desktop: leé primero `DESKTOP-MIGRATION-PLAN.md` completo, empezá por la Fase 0 si no hay código previo, y respetá la regla de split (`invoke()` solo para capacidades del sistema operativo; HTTP para todo lo que ya existe en `apps/web/`). Ese plan **revisa deliberadamente** algunas de las exclusiones de la sección anterior (multi-proveedor, memoria vectorial) para la capa desktop — no es una contradicción, es evolución explícita fase por fase.
+
 ## Commits
 
 Formato `feat(area): qué hace` / `fix(area): qué arregla` / `docs: qué documenta`. Commits chicos y frecuentes, cada dev en su rama (`feat/dev-X-loquesea`), PR a `main`.

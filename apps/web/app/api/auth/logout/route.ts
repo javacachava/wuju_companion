@@ -1,11 +1,11 @@
-import { NextResponse } from "next/server";
-
-import { clearSessionCookie, revokeCurrentSession } from "@/lib/auth/session";
+import { destroySession } from "@/lib/auth";
 
 export async function POST() {
-  await revokeCurrentSession();
-
-  const response = NextResponse.json({ authenticated: false });
-  clearSessionCookie(response);
-  return response;
+  try {
+    await destroySession();
+    return Response.json({ ok: true });
+  } catch (error) {
+    console.error("[api/auth/logout] failed", error);
+    return Response.json({ error: "No se pudo cerrar sesión." }, { status: 500 });
+  }
 }

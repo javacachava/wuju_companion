@@ -2,6 +2,8 @@
 
 > Tu responsabilidad: la base de datos y los endpoints de datos. Sos la fundación que todos consumen.
 
+> **Nota:** la migración a escritorio agrega, sobre este mismo schema, Fase 7.1 (`CharacterTemplate.personalityPrompt` — personalidad como producto de marketplace, con curaduría obligatoria por riesgo de prompt injection), Fase 8 (memoria semántica con pgvector) y Fase 9 (sesión compartida entre web y desktop) — ver `DESKTOP-MIGRATION-PLAN.md`. No implementar todavía; es para cuando se pida esa fase puntual.
+
 ## Tu carpeta
 
 ```

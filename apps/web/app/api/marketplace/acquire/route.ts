@@ -1,11 +1,10 @@
 import { z } from "zod";
 
 import { db } from "@/lib/db";
-import { getSessionFromCookie } from "@/lib/auth/session";
-import { ensureCharacterForUser } from "@/lib/companion/server";
 
 const AcquirePartSchema = z
   .object({
+    characterId: z.string().min(1),
     partId: z.string().min(1),
   })
   .strict();
@@ -13,19 +12,14 @@ const AcquirePartSchema = z
 export async function POST(request: Request) {
   try {
     const body = AcquirePartSchema.parse(await request.json());
-    const session = await getSessionFromCookie();
-    if (!session) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    const characterId = await ensureCharacterForUser(session.user.id, session.user.email);
 
     const [character, part, existing] = await Promise.all([
-      db.character.findUnique({ where: { id: characterId } }),
+      db.character.findUnique({ where: { id: body.characterId } }),
       db.part.findUnique({ where: { id: body.partId } }),
       db.inventoryItem.findUnique({
         where: {
           characterId_partId: {
-            characterId,
+            characterId: body.characterId,
             partId: body.partId,
           },
         },
@@ -52,13 +46,13 @@ export async function POST(request: Request) {
     // Cobro + alta de inventario en una sola transacción atómica.
     const [updatedCharacter, inventoryItem] = await db.$transaction([
       db.character.update({
-        where: { id: characterId },
+        where: { id: body.characterId },
         data: { coins: { decrement: part.price } },
         select: { coins: true },
       }),
       db.inventoryItem.create({
         data: {
-          characterId,
+          characterId: body.characterId,
           partId: body.partId,
         },
       }),

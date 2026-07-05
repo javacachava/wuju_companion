@@ -1,13 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import {
-  CompanionGlobalProvider,
-  useCompanionGlobal,
-} from "@/components/companion/CompanionGlobalContext";
-import { InstallationWindow } from "@/components/companion/InstallationWindow";
-import { Onboarding } from "@/components/companion/Onboarding";
+import { usePathname, useRouter } from "next/navigation";
+import { CompanionGlobalProvider, useCompanionGlobal } from "@/components/companion/CompanionGlobalContext";
 
 type AppShellProps = {
   children: React.ReactNode;
@@ -23,17 +18,7 @@ export function AppShell({ children }: AppShellProps) {
 
 function AppShellInner({ children }: AppShellProps) {
   const pathname = usePathname();
-  const {
-    character,
-    closeLauncher,
-    isLauncherOpen,
-    login,
-    openLauncher,
-    logout,
-    register,
-    status,
-    userEmail,
-  } = useCompanionGlobal();
+  const router = useRouter();
 
   return (
     <>
@@ -65,7 +50,7 @@ function AppShellInner({ children }: AppShellProps) {
 
           <button
             type="button"
-            onClick={openLauncher}
+            onClick={() => router.push("/companion")}
             className="rounded-md bg-[#06162b] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0b2342]"
           >
             Comenzar
@@ -75,35 +60,7 @@ function AppShellInner({ children }: AppShellProps) {
 
       {children}
 
-      <FloatingPet onOpenLauncher={openLauncher} />
-
-      {isLauncherOpen ? (
-        <div className="fixed inset-0 z-50 bg-slate-950/55 p-3 sm:p-6">
-          <div className="absolute right-5 top-5">
-            <button
-              type="button"
-              onClick={closeLauncher}
-              className="rounded-full border border-slate-200 bg-white px-3 py-1 text-sm text-slate-700"
-            >
-              Cerrar
-            </button>
-          </div>
-
-          <div className="h-full overflow-auto">
-            {status === "checking" ? (
-              <main className="mx-auto flex min-h-full max-w-4xl items-center justify-center">
-                <p className="rounded-lg bg-white px-4 py-3 text-sm text-slate-700">
-                  Cargando tu personaje...
-                </p>
-              </main>
-            ) : status === "auth" || !character ? (
-              <Onboarding onLogin={login} onRegister={register} />
-            ) : (
-              <InstallationWindow userEmail={userEmail} onLogout={logout} />
-            )}
-          </div>
-        </div>
-      ) : null}
+      <FloatingPet onOpenLauncher={() => router.push("/companion")} />
     </>
   );
 }

@@ -1,0 +1,17 @@
+{
+  "name": "desktop",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Cliente Tauri delgado para El Compañero.",
+  "scripts": {
+    "dev": "tauri dev",
+    "dev:wsl": "WEBKIT_DISABLE_DMABUF_RENDERER=1 WEBKIT_DISABLE_COMPOSITING_MODE=1 tauri dev",
+    "build": "tauri build",
+    "tauri": "tauri",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.11.4",
+    "typescript": "5.6.3"
+  }
+}

@@ -1,50 +1,38 @@
 import { z } from "zod";
-import { NextResponse } from "next/server";
 
+import { createSession, verifyPassword } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { verifyPassword } from "@/lib/auth/password";
-import { createSession, writeSessionCookie } from "@/lib/auth/session";
-import { ensureCharacterForUser } from "@/lib/companion/server";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
-const loginSchema = z
+const LoginSchema = z
   .object({
-    email: z.string().email(),
-    password: z.string().min(1),
+    email: z.string().email().max(254),
+    password: z.string().min(1).max(128),
   })
   .strict();
 
 export async function POST(request: Request) {
+  const limited = enforceRateLimit("auth", request);
+  if (limited) return limited;
+
   try {
-    const body = loginSchema.parse(await request.json());
+    const body = LoginSchema.parse(await request.json());
     const email = body.email.trim().toLowerCase();
 
-    const user = await db.user.findUnique({
-      where: { email },
-      select: { id: true, email: true, passwordHash: true },
-    });
-
-    if (!user || !verifyPassword(body.password, user.passwordHash)) {
-      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+    const user = await db.user.findUnique({ where: { email } });
+    // Mismo mensaje si el email no existe o el password falla: no filtrar cuáles emails tienen cuenta.
+    if (!user || !(await verifyPassword(body.password, user.passwordHash))) {
+      return Response.json({ error: "Email o contraseña incorrectos." }, { status: 401 });
     }
 
-    await ensureCharacterForUser(user.id, user.email);
-    const { token, expiresAt } = await createSession(user.id);
-
-    const response = NextResponse.json({
-      authenticated: true,
-      user: { id: user.id, email: user.email },
-    });
-    writeSessionCookie(response, token, expiresAt);
-    return response;
+    await createSession(user.id);
+    return Response.json({ user: { id: user.id, email: user.email, name: user.name } });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: "Invalid request", issues: error.issues },
-        { status: 400 },
-      );
+      return Response.json({ error: "Datos inválidos", issues: error.issues }, { status: 400 });
     }
 
     console.error("[api/auth/login] failed", error);
-    return NextResponse.json({ error: "Login failed" }, { status: 500 });
+    return Response.json({ error: "No se pudo iniciar sesión." }, { status: 500 });
   }
 }

@@ -1,17 +1,17 @@
 "use client";
 
 import { useCompanionGlobal } from "./CompanionGlobalContext";
-import { InstallationWindow } from "./InstallationWindow";
+import { CompanionApp } from "./CompanionApp";
+import { CompanionLaunchExperience } from "./CompanionLaunchExperience";
 import { Onboarding } from "./Onboarding";
 
 export function CompanionPageClient() {
   const {
-    logout,
-    userEmail,
     character,
-    login,
-    register,
+    completeSelection,
+    createCharacter,
     status,
+    updateCharacter,
   } = useCompanionGlobal();
 
   if (status === "checking") {
@@ -22,9 +22,19 @@ export function CompanionPageClient() {
     );
   }
 
-  if (status === "auth" || !character) {
-    return <Onboarding onLogin={login} onRegister={register} />;
+  if (status === "onboarding" || !character) {
+    return <Onboarding onContinue={createCharacter} />;
   }
 
-  return <InstallationWindow userEmail={userEmail} onLogout={logout} />;
+  if (status === "selecting") {
+    return (
+      <CompanionLaunchExperience
+        character={character}
+        onCharacterChange={updateCharacter}
+        onContinue={completeSelection}
+      />
+    );
+  }
+
+  return <CompanionApp character={character} onCharacterChange={updateCharacter} />;
 }

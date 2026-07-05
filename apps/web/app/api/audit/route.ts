@@ -3,30 +3,26 @@ import { z } from "zod";
 import { auditCode } from "@/lib/ai";
 import { describeAiError, getAiClientErrorMessage, isAiQuotaError } from "@/lib/ai-errors";
 import { db } from "@/lib/db";
-import { getSessionFromCookie } from "@/lib/auth/session";
-import { ensureCharacterForUser } from "@/lib/companion/server";
 import { triggerAuditCritical } from "@/lib/n8n";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 const AuditRequestSchema = z
   .object({
+    characterId: z.string().min(1),
     code: z.string().min(1),
     language: z.string().min(1),
   })
   .strict();
 
 export async function POST(request: Request) {
+  const limited = enforceRateLimit("audit", request);
+  if (limited) return limited;
+
   try {
     const body = AuditRequestSchema.parse(await request.json());
 
-    const session = await getSessionFromCookie();
-    if (!session) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const characterId = await ensureCharacterForUser(session.user.id, session.user.email);
-
     const character = await db.character.findUnique({
-      where: { id: characterId },
+      where: { id: body.characterId },
       select: {
         id: true,
         personality: true,

@@ -2,6 +2,8 @@
 
 > Workflows de n8n para el track "Best Use of n8n". Dev D implementa esto en n8n Cloud (cupón del hackathon) o en el VPS del equipo.
 
+> **Nota:** en la migración a escritorio (Fase 5 de `DESKTOP-MIGRATION-PLAN.md`), n8n pasa a ser estrictamente async y fuera de la ruta de conversación voz→LLM→voz — sigue recibiendo estos mismos webhooks, pero nunca intermedia un turno en tiempo real. No cambia nada de lo que sigue en este documento.
+
 ## Filosofía
 
 n8n en este proyecto no es un accesorio — es el ejecutor de acciones del Compañero. La promesa del producto ("el compañero respeta permisos y ejecuta acciones autorizadas") se demuestra literalmente con n8n: cada acción que el compañero "hace" fuera del chat pasa por un workflow n8n auditable.

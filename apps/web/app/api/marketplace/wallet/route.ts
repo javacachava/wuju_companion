@@ -1,21 +1,27 @@
+import { z } from "zod";
+
 import { db } from "@/lib/db";
-import { getSessionFromCookie } from "@/lib/auth/session";
-import { ensureCharacterForUser } from "@/lib/companion/server";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const session = await getSessionFromCookie();
-    if (!session) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    const characterId = await ensureCharacterForUser(session.user.id, session.user.email);
+    const url = new URL(request.url);
+    const characterId = z.string().min(1).parse(url.searchParams.get("characterId"));
 
-    const character = await db.character.findUniqueOrThrow({
+    const character = await db.character.findUnique({
       where: { id: characterId },
       select: { coins: true },
     });
+
+    if (!character) {
+      return Response.json({ error: "Character not found" }, { status: 404 });
+    }
+
     return Response.json({ coins: character.coins });
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return Response.json({ error: "Invalid request", issues: error.issues }, { status: 400 });
+    }
+
     console.error("[api/marketplace/wallet] failed", error);
     return Response.json({ error: "Wallet request failed" }, { status: 500 });
   }

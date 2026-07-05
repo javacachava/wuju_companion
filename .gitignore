@@ -9,6 +9,7 @@ out
 dist
 .turbo
 .vercel
+target
 *.tsbuildinfo
 
 # Env
