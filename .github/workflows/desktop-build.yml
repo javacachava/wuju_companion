@@ -1,14 +1,16 @@
 name: Desktop Build (Fase 6)
 
-# Disparo manual a propósito: apps/desktop todavía no tiene certificados de firma
-# reales (ver nota abajo), así que estos binarios NO son para distribución pública
-# todavía. Correr a mano cuando se quiera validar que el build multiplataforma
-# sigue andando, no en cada push (sería caro y ruidoso para un app no terminada).
+# Disparo manual. Construye los instaladores nativos (Windows/macOS/Linux) del
+# cliente Tauri y los publica como GitHub Release descargable.
+# NOTA: sin firma de código todavía — Windows SmartScreen y macOS Gatekeeper
+# van a advertir al instalar. Válido para demo/pruebas, no distribución masiva.
 on:
   workflow_dispatch:
 
 jobs:
   build:
+    permissions:
+      contents: write
     strategy:
       fail-fast: false
       matrix:
@@ -52,21 +54,14 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Build Tauri (apps/desktop) — SIN FIRMAR
-        uses: tauri-apps/tauri-action@v1
+      - name: Build Tauri + publicar release (sin firmar)
+        uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: apps/desktop
-
-      # TODO Fase 6 pendiente (bloqueado en certificados/secrets reales, no en código):
-      # - macOS: certificado de firma de desarrollador Apple + notarización
-      #   (APPLE_CERTIFICATE, APPLE_CERTIFICATE_PASSWORD, APPLE_ID, APPLE_PASSWORD,
-      #   APPLE_TEAM_ID como GitHub Secrets).
-      # - Windows: certificado de firma de código (WINDOWS_CERTIFICATE,
-      #   WINDOWS_CERTIFICATE_PASSWORD).
-      # - tauri-plugin-updater con clave de firma de actualizaciones
-      #   (TAURI_SIGNING_PRIVATE_KEY).
-      # Sin esto los instaladores salen sin firmar: macOS Gatekeeper y Windows
-      # SmartScreen van a advertir al usuario. Válido para pruebas internas del
-      # equipo, no para distribución pública real.
+          tagName: desktop-v__VERSION__
+          releaseName: "El Compañero Desktop v__VERSION__"
+          releaseBody: "Instaladores de escritorio (sin firmar — Windows SmartScreen / macOS Gatekeeper pueden advertir). Cliente Tauri que carga companion.wuju.dev."
+          releaseDraft: false
+          prerelease: true
