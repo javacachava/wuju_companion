@@ -155,12 +155,20 @@ Un asistente que ve tus archivos debería ser un asistente que podés leer.
 
 ## Roadmap
 
+### Ya implementado (post-MVP inicial)
+- ✅ Cuentas propias (email + contraseña, sesiones httpOnly, sin OAuth de terceros)
+- ✅ Marketplace público con carrito: personajes, packs y partes; checkout con pago simulado (`paid_simulated`)
+- ✅ Modelado de productos: `CharacterTemplate`, `Pack`, `Order`, `Ownership`
+- ✅ Rate limiting por IP en endpoints de IA y auth
+- ✅ PWA instalable (manifest + ícono)
+
 ### Post-hackathon (próximos 3 meses)
-- Autenticación real con Auth.js (GitHub, Google)
-- Pagos reales con Stripe + Stripe Connect para creadores
-- App de escritorio nativa con Tauri
+- OAuth opcional (GitHub, Google) sobre el auth propio
+- Pagos reales con Stripe + Stripe Connect para creadores (hoy simulado)
+- App de escritorio nativa con Tauri (instaladores Windows/Linux/macOS)
 - Memoria semántica con pgvector
 - Guardián de despliegue (conexión a GitHub + Supabase)
+- Portal de creadores con curaduría y dashboard de ventas
 
 ### Mediano plazo
 - Packs de marketing, diseño, negocios, estudio

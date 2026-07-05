@@ -86,7 +86,19 @@ model ActiveSkill {
 }
 ```
 
+### Cuentas y marketplace (agregados post-MVP inicial)
+
+- `User` (email único, `passwordHash` scrypt, nombre) y `Session` (token opaco, expiración 30 días) — auth propio sin terceros.
+- `Character.userId?` — personaje opcionalmente atado a una cuenta.
+- `CharacterTemplate` (catálogo de personajes vendibles: key, rol, voz, stats, `priceCents`) y `Pack` (packs de capacidades: skills, `priceCents`, `available` para "próximamente").
+- `Order` + `OrderItem` (compras, `status: 'paid_simulated'`) y `Ownership` (qué producto posee cada usuario, único por `userId+productType+productId`).
+- Precios en **centavos USD** (`priceCents`; `Part.price` se interpreta en centavos). `0` = gratis.
+
+Schema completo en `prisma/schema.prisma`.
+
 ## Endpoints
+
+> Todos los endpoints de IA (`/api/chat`, `/api/audit`, `/api/tts`) y auth tienen **rate limiting por IP** en memoria (`lib/rate-limit.ts`): 20, 6, 15 y 10 req/min respectivamente. Devuelven `429` con header `Retry-After`.
 
 ### `POST /api/chat` — Conversación con el compañero
 **Dueño:** Dev D · **Consumidor:** Dev C
@@ -263,6 +275,67 @@ Devuelve el saldo actual de monedas de demo del personaje.
 ```json
 { "error": "insufficient_funds", "coins": 100, "price": 450 }
 ```
+
+---
+
+### Autenticación — `POST /api/auth/register` · `POST /api/auth/login` · `POST /api/auth/logout` · `GET /api/auth/me`
+
+Auth propio sin terceros: email + contraseña (scrypt de `node:crypto`), sesión como token opaco
+en la tabla `Session` con cookie `companion_session` (httpOnly, secure en prod, sameSite lax, 30 días).
+
+**Register request:** `{ "email": "...", "name": "...", "password": "min 8 chars" }` → `201 { user }` (setea cookie). `409` si el email ya existe.
+**Login request:** `{ "email": "...", "password": "..." }` → `200 { user }` (setea cookie). `401` genérico (no filtra si el email existe).
+**Me:** → `{ "user": { id, email, name } | null }`.
+Register y login tienen rate limit por IP (10/min).
+
+Los personajes creados con sesión activa quedan atados al `User` (`Character.userId`); los huérfanos se adoptan al loguearse.
+
+---
+
+### `GET /api/marketplace/catalog` — Catálogo público unificado
+
+Sin auth (con sesión agrega `owned`). Devuelve personajes (`CharacterTemplate`), packs (`Pack`) y partes (`Part`) normalizados:
+
+```json
+{
+  "products": [
+    {
+      "productType": "character | pack | part",
+      "productId": "clx...",
+      "name": "Mentor Nova",
+      "description": "...",
+      "category": "rol | pack | hair/eyes/...",
+      "imageUrl": "/parts/... | null",
+      "avatar": "MN | null",
+      "priceCents": 499,
+      "isPremium": true,
+      "available": true,
+      "owned": false
+    }
+  ]
+}
+```
+
+`priceCents` en centavos USD; `0` = gratis. `available: false` = "próximamente" (no comprable).
+
+---
+
+### `POST /api/marketplace/checkout` — Compra de carrito (pago simulado)
+
+**Requiere sesión** (401 sin cookie). Los precios se recalculan SIEMPRE en el server; el cliente solo manda ids.
+
+**Request:** `{ "items": [{ "productType": "part|character|pack", "productId": "clx..." }] }` (1–50 ítems)
+
+**Response (200):**
+```json
+{ "orderId": "clx...", "totalCents": 999, "status": "paid_simulated", "items": [{ "name": "...", "priceCents": 499 }] }
+```
+
+**Comportamiento:**
+- Crea `Order` + `OrderItem[]` + `Ownership` en transacción. Ítems ya poseídos se filtran (no se cobran de nuevo); si todo era poseído → `409`.
+- Partes compradas se acreditan como `InventoryItem` al primer personaje del usuario, si tiene.
+- Packs con `available: false` → `409`.
+- **El pago es simulado** (`status: paid_simulated`): la tarjeta se valida en el front (Luhn/vencimiento/CVC) pero nunca viaja al server. Stripe + Connect (comisión a creadores) es post-MVP.
 
 ---
 

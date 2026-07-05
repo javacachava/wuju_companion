@@ -14,6 +14,11 @@ import {
   X,
 } from "lucide-react";
 
+import { DownloadsSection } from "@/components/landing/DownloadsSection";
+import { FaqSection } from "@/components/landing/FaqSection";
+import { MarketplacePreview } from "@/components/landing/MarketplacePreview";
+import { WujuSection } from "@/components/landing/WujuSection";
+
 const repoUrl = "https://github.com/javacachava/wuju_companion";
 
 const howItWorks = [
@@ -191,6 +196,10 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <MarketplacePreview />
+
+      <DownloadsSection />
+
       <section className="border-y border-slate-200 bg-slate-50">
         <div className="mx-auto max-w-6xl px-4 py-16 md:py-24">
           <h2 className="text-2xl font-bold text-slate-900">Roadmap</h2>
@@ -235,6 +244,10 @@ export default function LandingPage() {
           </a>
         </article>
       </section>
+
+      <WujuSection />
+
+      <FaqSection />
 
       <footer className="border-t border-slate-200 px-4 py-8 text-sm text-slate-500">
         <div className="mx-auto flex max-w-6xl flex-col gap-3 md:flex-row md:items-center md:justify-between">

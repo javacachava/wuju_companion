@@ -5,6 +5,7 @@ import { chatWithCompanion } from "@/lib/ai";
 import { describeAiError } from "@/lib/ai-errors";
 import { db } from "@/lib/db";
 import { triggerConversationLog } from "@/lib/n8n";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 const ChatRequestSchema = z
   .object({
@@ -56,6 +57,9 @@ function toSafeDataStreamResponse(result: ReturnType<typeof chatWithCompanion>) 
 }
 
 export async function POST(request: Request) {
+  const limited = enforceRateLimit("chat", request);
+  if (limited) return limited;
+
   try {
     const body = ChatRequestSchema.parse(await request.json());
 

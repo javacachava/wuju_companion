@@ -2,9 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { LogOut, ShoppingCart, UserRound } from "lucide-react";
+import { useSession } from "@/components/auth/SessionContext";
 import { CompanionGlobalProvider, useCompanionGlobal } from "@/components/companion/CompanionGlobalContext";
 import { CompanionLaunchExperience } from "@/components/companion/CompanionLaunchExperience";
 import { Onboarding } from "@/components/companion/Onboarding";
+import { useCart } from "@/components/marketplace/CartContext";
 
 type AppShellProps = {
   children: React.ReactNode;
@@ -47,13 +50,17 @@ function AppShellInner({ children }: AppShellProps) {
             </NavLink>
           </nav>
 
-          <button
-            type="button"
-            onClick={openLauncher}
-            className="rounded-md bg-blue-700 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-blue-800"
-          >
-            Caja/Mascota
-          </button>
+          <div className="flex items-center gap-2">
+            <CartButton />
+            <SessionControls />
+            <button
+              type="button"
+              onClick={openLauncher}
+              className="rounded-md bg-blue-700 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-blue-800"
+            >
+              Caja/Mascota
+            </button>
+          </div>
         </div>
       </header>
 
@@ -94,6 +101,60 @@ function AppShellInner({ children }: AppShellProps) {
         </div>
       ) : null}
     </>
+  );
+}
+
+function CartButton() {
+  const { items } = useCart();
+
+  return (
+    <Link
+      href="/marketplace?cart=open"
+      className="relative rounded-md p-2 text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+      aria-label={`Carrito (${items.length})`}
+    >
+      <ShoppingCart className="h-5 w-5" />
+      {items.length > 0 ? (
+        <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] font-bold text-white">
+          {items.length}
+        </span>
+      ) : null}
+    </Link>
+  );
+}
+
+function SessionControls() {
+  const { user, loading, logout } = useSession();
+
+  if (loading) return null;
+
+  if (!user) {
+    return (
+      <Link
+        href="/login"
+        className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-1.5 text-sm text-slate-700 transition hover:bg-slate-50"
+      >
+        <UserRound className="h-4 w-4" />
+        Ingresar
+      </Link>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1">
+      <span className="hidden max-w-28 truncate text-sm font-medium text-slate-700 sm:block" title={user.email}>
+        {user.name}
+      </span>
+      <button
+        type="button"
+        onClick={() => void logout()}
+        className="rounded-md p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+        aria-label="Cerrar sesión"
+        title="Cerrar sesión"
+      >
+        <LogOut className="h-4 w-4" />
+      </button>
+    </div>
   );
 }
 

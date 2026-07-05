@@ -1,76 +1,70 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Coins, Loader2 } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ArrowLeft, Loader2, ShoppingCart } from "lucide-react";
+import { useSession } from "@/components/auth/SessionContext";
 import {
-  acquirePart,
-  getMarketplaceParts,
-  getWallet,
-  InsufficientFundsError,
-  type MarketplacePart,
+  ApiError,
+  checkoutCart,
+  getCatalog,
+  type CatalogProduct,
 } from "@/lib/marketplace/api";
-import { FILTERS, isMarketplaceFilter, type MarketplaceFilter } from "./partMeta";
-import { PartCard } from "./PartCard";
-import { PartDetailModal } from "./PartDetailModal";
-import { CheckoutModal } from "./CheckoutModal";
+import { CartCheckoutModal } from "./CartCheckoutModal";
+import { CartDrawer } from "./CartDrawer";
+import { useCart } from "./CartContext";
+import { ProductCard } from "./ProductCard";
 import { Toast } from "./Toast";
 
-const CHARACTER_ID_KEY = "characterId";
-
 type LoadState = "loading" | "ready" | "error";
+
+type Filter = "todo" | "character" | "pack" | "part";
+
+const FILTERS: Array<{ key: Filter; label: string }> = [
+  { key: "todo", label: "Todo" },
+  { key: "character", label: "Personajes" },
+  { key: "pack", label: "Packs" },
+  { key: "part", label: "Partes" },
+];
 
 export function MarketplaceClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user } = useSession();
+  const cart = useCart();
 
-  const [characterId, setCharacterId] = useState<string | null>(null);
-  const [parts, setParts] = useState<MarketplacePart[]>([]);
+  const [products, setProducts] = useState<CatalogProduct[]>([]);
   const [loadState, setLoadState] = useState<LoadState>("loading");
-  const [coins, setCoins] = useState<number>(0);
-  const [selected, setSelected] = useState<MarketplacePart | null>(null);
-  const [checkoutPart, setCheckoutPart] = useState<MarketplacePart | null>(null);
-  const [acquiring, setAcquiring] = useState(false);
+  const [filter, setFilter] = useState<Filter>("todo");
+  const [drawerOpen, setDrawerOpen] = useState(searchParams.get("cart") === "open");
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const filter: MarketplaceFilter = isMarketplaceFilter(searchParams.get("category"))
-    ? (searchParams.get("category") as MarketplaceFilter)
-    : "todo";
-
-  useEffect(() => {
-    setCharacterId(localStorage.getItem(CHARACTER_ID_KEY));
+  const load = useCallback(async () => {
+    try {
+      const data = await getCatalog();
+      setProducts(data);
+      setLoadState("ready");
+    } catch (error) {
+      console.error("[marketplace] catálogo falló", error);
+      setLoadState("error");
+    }
   }, []);
 
   useEffect(() => {
-    let active = true;
-
-    const load = async () => {
-      setLoadState("loading");
-      try {
-        const [data, wallet] = await Promise.all([
-          getMarketplaceParts(characterId ?? undefined),
-          characterId ? getWallet(characterId) : Promise.resolve(0),
-        ]);
-        if (!active) return;
-        setParts(data);
-        setCoins(wallet);
-        setLoadState("ready");
-      } catch (error) {
-        console.error("[marketplace] no se pudo cargar el catálogo", error);
-        if (!active) return;
-        setLoadState("error");
-      }
-    };
-
     void load();
-    return () => {
-      active = false;
-    };
-  }, [characterId]);
+  }, [load, user]);
+
+  useEffect(() => {
+    if (searchParams.get("cart") === "open") {
+      setDrawerOpen(true);
+      router.replace("/marketplace", { scroll: false });
+    }
+  }, [searchParams, router]);
 
   useEffect(() => {
     return () => {
@@ -81,90 +75,62 @@ export function MarketplaceClient() {
   const showToast = useCallback((message: string) => {
     setToast(message);
     if (toastTimer.current) clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast(null), 2800);
+    toastTimer.current = setTimeout(() => setToast(null), 3200);
   }, []);
 
-  const setFilter = useCallback(
-    (next: MarketplaceFilter) => {
-      const params = new URLSearchParams(searchParams.toString());
-      if (next === "todo") {
-        params.delete("category");
-      } else {
-        params.set("category", next);
-      }
-      const query = params.toString();
-      router.replace(query ? `/marketplace?${query}` : "/marketplace", { scroll: false });
+  const visible = useMemo(
+    () => (filter === "todo" ? products : products.filter((p) => p.productType === filter)),
+    [products, filter],
+  );
+
+  const handleAdd = useCallback(
+    (product: CatalogProduct) => {
+      cart.add({
+        productType: product.productType,
+        productId: product.productId,
+        name: product.name,
+        priceCents: product.priceCents,
+        imageUrl: product.imageUrl,
+        avatar: product.avatar,
+      });
+      setDrawerOpen(true);
     },
-    [router, searchParams],
+    [cart],
   );
 
-  const visibleParts = useMemo(
-    () => (filter === "todo" ? parts : parts.filter((part) => part.category === filter)),
-    [parts, filter],
+  const handleRemove = useCallback(
+    (product: CatalogProduct) => cart.remove(product.productType, product.productId),
+    [cart],
   );
 
-  const finishAcquisition = useCallback(
-    (part: MarketplacePart, nextCoins: number) => {
-      setCoins(nextCoins);
-      setParts((prev) => prev.filter((item) => item.id !== part.id));
-      showToast("Agregado! Ya está en tu wardrobe.");
-    },
-    [showToast],
-  );
-
-  // Parte gratis: sin checkout, se agrega directo.
-  const handleAcquireFree = useCallback(
-    async (part: MarketplacePart) => {
-      if (!characterId) return;
-      setAcquiring(true);
-      try {
-        const { coins: nextCoins } = await acquirePart(characterId, part.id);
-        setSelected(null);
-        finishAcquisition(part, nextCoins);
-      } catch (error) {
-        console.error("[marketplace] no se pudo agregar la parte gratis", error);
-        showToast("No se pudo agregar. Probá de nuevo.");
-      } finally {
-        setAcquiring(false);
-      }
-    },
-    [characterId, finishAcquisition, showToast],
-  );
-
-  const openCheckout = useCallback((part: MarketplacePart) => {
-    setSelected(null);
+  const handlePay = useCallback(async () => {
+    setProcessing(true);
     setServerError(null);
-    setCheckoutPart(part);
-  }, []);
-
-  // Parte de pago: se dispara desde el checkout tras validar la tarjeta.
-  const handlePay = useCallback(
-    async (part: MarketplacePart) => {
-      if (!characterId) return;
-      setProcessing(true);
-      setServerError(null);
-      try {
-        // Latencia simulada de "procesar el pago".
-        await new Promise((resolve) => setTimeout(resolve, 900));
-        const { coins: nextCoins } = await acquirePart(characterId, part.id);
-        setCheckoutPart(null);
-        finishAcquisition(part, nextCoins);
-      } catch (error) {
-        if (error instanceof InsufficientFundsError) {
-          setCoins(error.coins);
-          setServerError(
-            `Saldo insuficiente: tenés ${error.coins} y la parte cuesta ${error.price} monedas.`,
-          );
-        } else {
-          console.error("[marketplace] el pago falló", error);
-          setServerError("No se pudo procesar el pago. Probá de nuevo.");
-        }
-      } finally {
-        setProcessing(false);
+    try {
+      // Latencia simulada del "procesador de pago".
+      await new Promise((resolve) => setTimeout(resolve, 900));
+      const result = await checkoutCart(
+        cart.items.map(({ productType, productId }) => ({ productType, productId })),
+      );
+      cart.clear();
+      setCheckoutOpen(false);
+      setDrawerOpen(false);
+      showToast(
+        result.totalCents > 0
+          ? "Compra confirmada. Todo quedó en tu cuenta."
+          : "Listo! Todo quedó en tu cuenta.",
+      );
+      await load();
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        router.push("/login?next=/marketplace");
+        return;
       }
-    },
-    [characterId, finishAcquisition],
-  );
+      setServerError(error instanceof ApiError ? error.message : "No se pudo completar la compra.");
+    } finally {
+      setProcessing(false);
+    }
+  }, [cart, load, router, showToast]);
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-8 md:py-12">
@@ -177,42 +143,39 @@ export function MarketplaceClient() {
             <ArrowLeft className="h-4 w-4" />
             Volver al compañero
           </Link>
-          <span
-            className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-sm font-semibold text-amber-700"
-            title="Monedas de demo — moneda in-app, no dinero real"
+          <button
+            type="button"
+            onClick={() => setDrawerOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
           >
-            <Coins className="h-4 w-4" />
-            {coins}
-          </span>
+            <ShoppingCart className="h-4 w-4" />
+            Carrito ({cart.items.length})
+          </button>
         </div>
 
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 md:text-3xl">
-            Marketplace del Compañero
-          </h1>
+          <h1 className="text-2xl font-bold text-slate-900 md:text-3xl">Marketplace</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Sumá partes a tu wardrobe. El saldo se valida de verdad; el cobro es de demo.
+            Personajes, packs de capacidades y partes de wardrobe. La mayoría gratis; los premium
+            con pago simulado por ahora.
           </p>
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {FILTERS.map(({ key, label }) => {
-            const active = filter === key;
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setFilter(key)}
-                className={`rounded-full border px-3 py-1.5 text-sm transition ${
-                  active
-                    ? "border-blue-300 bg-blue-50 font-medium text-blue-700"
-                    : "border-slate-200 text-slate-600 hover:bg-slate-50"
-                }`}
-              >
-                {label}
-              </button>
-            );
-          })}
+          {FILTERS.map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setFilter(key)}
+              className={`rounded-full border px-3 py-1.5 text-sm transition ${
+                filter === key
+                  ? "border-blue-300 bg-blue-50 font-medium text-blue-700"
+                  : "border-slate-200 text-slate-600 hover:bg-slate-50"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
       </header>
 
@@ -230,34 +193,35 @@ export function MarketplaceClient() {
       ) : null}
 
       {loadState === "ready" ? (
-        visibleParts.length > 0 ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {visibleParts.map((part) => (
-              <PartCard key={part.id} part={part} onSelect={setSelected} />
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-12 text-center text-sm text-slate-500">
-            Ya tenés todo lo de esta categoría. Probá otro filtro.
-          </div>
-        )
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {visible.map((product) => (
+            <ProductCard
+              key={`${product.productType}:${product.productId}`}
+              product={product}
+              inCart={cart.has(product.productType, product.productId)}
+              onAdd={handleAdd}
+              onRemove={handleRemove}
+            />
+          ))}
+        </div>
       ) : null}
 
-      <PartDetailModal
-        part={selected}
-        acquiring={acquiring}
-        canAcquire={Boolean(characterId)}
-        onClose={() => setSelected(null)}
-        onAcquireFree={handleAcquireFree}
-        onCheckout={openCheckout}
+      <CartDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        onCheckout={() => {
+          setServerError(null);
+          setCheckoutOpen(true);
+        }}
       />
-      <CheckoutModal
-        part={checkoutPart}
-        coins={coins}
+      <CartCheckoutModal
+        open={checkoutOpen}
+        items={cart.items}
+        totalCents={cart.totalCents}
         processing={processing}
         serverError={serverError}
-        onClose={() => setCheckoutPart(null)}
-        onPay={handlePay}
+        onClose={() => setCheckoutOpen(false)}
+        onPay={() => void handlePay()}
       />
       <Toast message={toast} />
     </main>

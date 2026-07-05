@@ -188,6 +188,121 @@ const defaultParts = {
   clothing: "Remera",
 } as const;
 
+// Catálogo de personajes vendibles (precios en centavos USD; 0 = gratis).
+const characterTemplates = [
+  {
+    key: "purr-fect",
+    name: "Purr-fect",
+    role: "Compañera principal",
+    summary: "Ideal para sesiones largas, explica con calma y mantiene contexto.",
+    avatar: "PF",
+    personality: "amigable",
+    voiceId: "21m00Tcm4TlvDq8ikWAM",
+    voiceLabel: "Norma / cálida",
+    statsJson: JSON.stringify({ analysis: 85, creativity: 62, speed: 94 }),
+    priceCents: 0,
+    isPremium: false,
+  },
+  {
+    key: "byte-warden",
+    name: "Byte Warden",
+    role: "Guardián de código",
+    summary: "Detecta riesgos rápido y prioriza hallazgos críticos en auditorías.",
+    avatar: "BW",
+    personality: "directo",
+    voiceId: "EXAVITQu4vr4xnSDxMaL",
+    voiceLabel: "Guardia / firme",
+    statsJson: JSON.stringify({ analysis: 96, creativity: 44, speed: 88 }),
+    priceCents: 0,
+    isPremium: false,
+  },
+  {
+    key: "luna-build",
+    name: "Luna Build",
+    role: "Planificación y QA",
+    summary: "Excelente para planificación, documentación y entregas ordenadas.",
+    avatar: "LB",
+    personality: "formal",
+    voiceId: "MF3mGyEYCl7XYWbV9V6O",
+    voiceLabel: "Formal / precisa",
+    statsJson: JSON.stringify({ analysis: 82, creativity: 71, speed: 75 }),
+    priceCents: 0,
+    isPremium: false,
+  },
+  {
+    key: "spark-bot",
+    name: "Spark Bot",
+    role: "Creatividad y diseño",
+    summary: "Propone variantes de UI e ideas de producto con ritmo alto.",
+    avatar: "SB",
+    personality: "entusiasta",
+    voiceId: "TxGEqnHWrfWFTfGW9XjX",
+    voiceLabel: "Energía / dinámica",
+    statsJson: JSON.stringify({ analysis: 68, creativity: 95, speed: 90 }),
+    priceCents: 299,
+    isPremium: true,
+  },
+  {
+    key: "index-fox",
+    name: "Index Fox",
+    role: "Búsqueda técnica",
+    summary: "Navega repos grandes y encuentra dependencias con mucha precisión.",
+    avatar: "IF",
+    personality: "directo",
+    voiceId: "VR6AewLTigWG4xSOukaG",
+    voiceLabel: "Ágil / técnica",
+    statsJson: JSON.stringify({ analysis: 91, creativity: 58, speed: 93 }),
+    priceCents: 299,
+    isPremium: true,
+  },
+  {
+    key: "mentor-nova",
+    name: "Mentor Nova",
+    role: "Aprendizaje guiado",
+    summary: "Perfecta para pairing, enseñanza y feedback de buenas prácticas.",
+    avatar: "MN",
+    personality: "amigable",
+    voiceId: "XB0fDUnXU5powFXDhCwa",
+    voiceLabel: "Mentora / clara",
+    statsJson: JSON.stringify({ analysis: 79, creativity: 83, speed: 70 }),
+    priceCents: 499,
+    isPremium: true,
+  },
+] as const;
+
+const packs = [
+  {
+    key: "desarrollo",
+    name: "Pack Desarrollo",
+    description:
+      "Chat conversacional con voz + Guardián de código: auditoría de vulnerabilidades OWASP con severidades y fixes propuestos.",
+    skillsJson: JSON.stringify(["chat-base", "code-guardian"]),
+    priceCents: 0,
+    isPremium: false,
+    available: true,
+  },
+  {
+    key: "marketing",
+    name: "Pack Marketing",
+    description:
+      "Análisis de campañas, copy asistido y reportes de métricas contados con la voz de tu compañero.",
+    skillsJson: JSON.stringify(["chat-base", "campaign-analyst"]),
+    priceCents: 999,
+    isPremium: true,
+    available: false,
+  },
+  {
+    key: "estudio",
+    name: "Pack Estudio",
+    description:
+      "Resúmenes de apuntes, planes de estudio y quizzes generados por tu compañero para preparar exámenes.",
+    skillsJson: JSON.stringify(["chat-base", "study-coach"]),
+    priceCents: 999,
+    isPremium: true,
+    available: false,
+  },
+] as const;
+
 async function upsertPart(part: (typeof parts)[number]) {
   const existing = await prisma.part.findFirst({
     where: {
@@ -222,6 +337,22 @@ async function findDefaultPart(category: keyof typeof defaultParts) {
 async function main() {
   for (const part of parts) {
     await upsertPart(part);
+  }
+
+  for (const template of characterTemplates) {
+    await prisma.characterTemplate.upsert({
+      where: { key: template.key },
+      update: template,
+      create: template,
+    });
+  }
+
+  for (const pack of packs) {
+    await prisma.pack.upsert({
+      where: { key: pack.key },
+      update: pack,
+      create: pack,
+    });
   }
 
   const freeParts = await prisma.part.findMany({

@@ -4,6 +4,7 @@ import { auditCode } from "@/lib/ai";
 import { describeAiError, getAiClientErrorMessage, isAiQuotaError } from "@/lib/ai-errors";
 import { db } from "@/lib/db";
 import { triggerAuditCritical } from "@/lib/n8n";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 const AuditRequestSchema = z
   .object({
@@ -14,6 +15,9 @@ const AuditRequestSchema = z
   .strict();
 
 export async function POST(request: Request) {
+  const limited = enforceRateLimit("audit", request);
+  if (limited) return limited;
+
   try {
     const body = AuditRequestSchema.parse(await request.json());
 

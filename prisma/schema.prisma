@@ -9,11 +9,39 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  sessions   Session[]
+  characters Character[]
+  orders     Order[]
+  ownerships Ownership[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
 model Character {
   id        String   @id @default(cuid())
   userName  String   @unique
+  userId    String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  user User? @relation(fields: [userId], references: [id])
 
   hairId      String?
   eyesId      String?
@@ -74,4 +102,68 @@ model ActiveSkill {
   character Character @relation(fields: [characterId], references: [id])
 
   @@unique([characterId, skillKey])
+}
+
+// ── Marketplace: catálogo vendible ─────────────────────────────────────────
+
+model CharacterTemplate {
+  id         String  @id @default(cuid())
+  key        String  @unique // 'purr-fect', 'byte-warden', ...
+  name       String
+  role       String
+  summary    String
+  avatar     String // iniciales o emoji mostrado en la tarjeta
+  personality String @default("amigable")
+  voiceId    String
+  voiceLabel String
+  statsJson  String // {"analysis":85,"creativity":62,"speed":94}
+  priceCents Int     @default(0) // 0 = gratis; pago simulado, sin dinero real todavía
+  isPremium  Boolean @default(false)
+}
+
+model Pack {
+  id          String  @id @default(cuid())
+  key         String  @unique // 'desarrollo', 'marketing', ...
+  name        String
+  description String
+  skillsJson  String // ["chat-base","code-guardian"]
+  priceCents  Int     @default(0)
+  isPremium   Boolean @default(false)
+  available   Boolean @default(true) // false = "próximamente" en el marketplace
+}
+
+model Order {
+  id         String   @id @default(cuid())
+  userId     String
+  totalCents Int
+  status     String // 'paid_simulated' — no hay pasarela real todavía
+  createdAt  DateTime @default(now())
+
+  user  User        @relation(fields: [userId], references: [id])
+  items OrderItem[]
+
+  @@index([userId])
+}
+
+model OrderItem {
+  id          String @id @default(cuid())
+  orderId     String
+  productType String // 'part' | 'character' | 'pack'
+  productId   String
+  name        String
+  priceCents  Int
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model Ownership {
+  id          String   @id @default(cuid())
+  userId      String
+  productType String // 'part' | 'character' | 'pack'
+  productId   String
+  acquiredAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, productType, productId])
 }

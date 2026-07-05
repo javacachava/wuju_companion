@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 
 const categories = ["hair", "eyes", "mouth", "accessory", "clothing"] as const;
@@ -94,7 +95,7 @@ async function getDefaultParts() {
   >;
 }
 
-async function createCharacter(userName: string) {
+async function createCharacter(userName: string, userId: string | null) {
   const defaults = await getDefaultParts();
   const freeParts = await db.part.findMany({
     where: { isPremium: false },
@@ -104,6 +105,7 @@ async function createCharacter(userName: string) {
     const character = await tx.character.create({
       data: {
         userName,
+        userId,
         hairId: defaults.hair.id,
         eyesId: defaults.eyes.id,
         mouthId: defaults.mouth.id,
@@ -135,11 +137,21 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const userName = z.string().trim().min(1).parse(url.searchParams.get("userName"));
 
-    const character = await db.character.findUnique({
-      where: { userName },
-    });
+    const [character, sessionUser] = await Promise.all([
+      db.character.findUnique({ where: { userName } }),
+      getSessionUser(),
+    ]);
 
-    const resolvedCharacter = character ?? (await createCharacter(userName));
+    let resolvedCharacter = character;
+    if (!resolvedCharacter) {
+      resolvedCharacter = await createCharacter(userName, sessionUser?.id ?? null);
+    } else if (!resolvedCharacter.userId && sessionUser) {
+      // Personaje huérfano (creado antes de loguearse): se adopta a la cuenta.
+      await db.character.update({
+        where: { id: resolvedCharacter.id },
+        data: { userId: sessionUser.id },
+      });
+    }
 
     return Response.json(await serializeCharacter(resolvedCharacter.id));
   } catch (error) {
