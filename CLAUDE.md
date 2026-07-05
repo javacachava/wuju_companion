@@ -19,8 +19,8 @@ El MVP tiene un solo pack completo — **desarrollo** — con dos capacidades: *
 - **IA:** Vercel AI SDK, proveedor principal OpenAI/Codex (streaming)
 - **Voz:** ElevenLabs API con cache en memoria
 - **Datos:** SQLite + Prisma ORM
-- **Automatización:** n8n self-hosted (Railway)
-- **Deploy:** Vercel
+- **Automatización:** n8n Cloud (cupón Pro del hackathon) o Docker en el VPS
+- **Deploy:** VPS propio con `next start` + pm2 + Caddy (TLS automático). SQLite necesita disco persistente — no usar Vercel/Netlify para la app
 - **Package manager:** pnpm
 
 ## Comandos (una vez creado el proyecto)

@@ -21,6 +21,8 @@ model Character {
   personality String   @default("amigable")
   voiceId     String   @default("21m00Tcm4TlvDq8ikWAM")
 
+  coins       Int      @default(1000)  // saldo de monedas de demo (moneda in-app, no dinero real)
+
   messages    Message[]
   inventory   InventoryItem[]
   skills      ActiveSkill[]
@@ -220,7 +222,19 @@ Si no existe Character con ese `userName`, lo crea con partes default del seed.
 
 ---
 
-### `POST /api/marketplace/acquire` — Agregar parte al inventario (mock)
+### `GET /api/marketplace/wallet?characterId=X` — Saldo de monedas
+**Dueño:** Dev E · **Consumidor:** Dev B
+
+**Response:**
+```json
+{ "coins": 1000 }
+```
+
+Devuelve el saldo actual de monedas de demo del personaje.
+
+---
+
+### `POST /api/marketplace/acquire` — Comprar parte (pago simulado)
 **Dueño:** Dev E · **Consumidor:** Dev B
 
 **Request:**
@@ -231,7 +245,24 @@ Si no existe Character con ese `userName`, lo crea con partes default del seed.
 }
 ```
 
-**Response:** `InventoryItem` creado. En el MVP no valida pago.
+**Response (200):**
+```json
+{
+  "inventoryItem": { "id": "clx...", "characterId": "clx123...", "partId": "clx789..." },
+  "coins": 550
+}
+```
+
+**Comportamiento:**
+- El **saldo de monedas es real** y se valida en el server: si `part.price > 0` y `character.coins < part.price`, responde `402` sin modificar nada.
+- Si alcanza, descuenta `part.price` de `character.coins` y crea el `InventoryItem` en una sola transacción atómica.
+- Si el personaje **ya tiene** la parte, no cobra de nuevo (idempotente) y devuelve el saldo actual.
+- **No hay dinero real ni pasarela de pago.** Las "monedas" son moneda in-app de demo. La tarjeta que se pide en el checkout se valida en el front (formato/Luhn/vencimiento) pero nunca se envía ni se guarda: no existe procesador que verifique que la tarjeta sea real.
+
+**Response (402) — saldo insuficiente:**
+```json
+{ "error": "insufficient_funds", "coins": 100, "price": 450 }
+```
 
 ---
 

@@ -171,7 +171,7 @@ Corré pnpm prisma db seed y verificá en Prisma Studio.
 
 1. **El schema cambia después de que otros ya lo están usando.** Mitigación: cerrar el schema en H+2 y no cambiarlo salvo emergencia. Si hay que cambiarlo, avisar al equipo entero.
 2. **Los seeds no reflejan la realidad de los assets.** Mitigación: en H+6, revisar con Dev B qué archivos de imagen están efectivamente en `public/parts/` y actualizar el seed.
-3. **Prisma en producción con SQLite.** No es un problema en el MVP porque solo corre local + Vercel. Pero SQLite en Vercel es efímero (se resetea cada deploy) — si el jurado quiere probar, tener el `dev.db` con datos ya seedeados en el repo (agregarlo al `.gitignore` con excepción para el file específico).
+3. **Prisma en producción con SQLite.** Deploy en VPS propio con `next start`, así que el archivo SQLite persiste en disco — sin problema. Poner `DATABASE_URL` apuntando a una ruta persistente del VPS (fuera del directorio del build) y correr `prisma migrate deploy` + seed en cada deploy. NO deployar la app a serverless (Vercel/Netlify): ahí el filesystem es efímero y la DB se pierde.
 
 ## Coordinación con otros devs
 

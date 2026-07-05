@@ -1,0 +1,241 @@
+{
+  "name": "Companero audit-critical",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "audit-critical",
+        "authentication": "none",
+        "responseMode": "responseNode"
+      },
+      "id": "661bec00-a01d-4dfe-93a8-7a10e4806890",
+      "name": "Audit Critical Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [240, 300],
+      "webhookId": "597d0185-7483-4c6a-8e29-0f8cb5f9d424"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "secret-match",
+              "leftValue": "={{ $json.headers?.[\"x-companero-secret\"] ?? \"\" }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "rightValue": "={{ $vars.COMPANERO_SECRET ?? \"test\" }}"
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "39df60f0-038c-4ce8-a439-c9003c19a279",
+      "name": "Validate Companion Secret",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "event",
+              "name": "event",
+              "value": "audit-critical",
+              "type": "string"
+            },
+            {
+              "id": "character-id",
+              "name": "characterId",
+              "value": "={{ $json.body?.characterId ?? $json.characterId ?? \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "critical-count",
+              "name": "criticalCount",
+              "value": "={{ Number($json.body?.criticalCount ?? $json.criticalCount ?? 0) }}",
+              "type": "number"
+            },
+            {
+              "id": "summary",
+              "name": "summary",
+              "value": "={{ $json.body?.summary ?? $json.summary ?? \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "received-at",
+              "name": "receivedAt",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "fd2cd4b5-a851-46e1-a224-6606d11ae0d8",
+      "name": "Normalize Audit Payload",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [540, 300]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "lwC8u6NH78gxtMsL",
+          "cachedResultName": "companero_audit_events"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "receivedAt": "={{ $json.receivedAt }}",
+            "characterId": "={{ $json.characterId }}",
+            "criticalCount": "={{ $json.criticalCount }}",
+            "summary": "={{ $json.summary }}"
+          },
+          "schema": [
+            {
+              "id": "receivedAt",
+              "displayName": "receivedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "characterId",
+              "displayName": "characterId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "criticalCount",
+              "displayName": "criticalCount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "summary",
+              "displayName": "summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        }
+      },
+      "id": "3a1ceebb-a3ad-4b28-8bab-81a1e014fe3d",
+      "name": "Store Audit Event",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [760, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, workflow: \"audit-critical\", receivedAt: $json.receivedAt } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "55aa2ae5-5ee9-473c-b3cb-74abfcc53d15",
+      "name": "Respond Audit Received",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [840, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: false, error: \"Unauthorized\" } }}",
+        "options": {
+          "responseCode": 403
+        }
+      },
+      "id": "0fc61399-df56-4ca8-b81f-d19b3ef16566",
+      "name": "Respond Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [660, 480]
+    }
+  ],
+  "connections": {
+    "Audit Critical Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Companion Secret",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Companion Secret": {
+      "main": [
+        [
+          {
+            "node": "Normalize Audit Payload",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Unauthorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Audit Payload": {
+      "main": [
+        [
+          {
+            "node": "Store Audit Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Audit Event": {
+      "main": [
+        [
+          {
+            "node": "Respond Audit Received",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

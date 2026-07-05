@@ -21,7 +21,7 @@ Lo que compartís con el resto: `components/ui/` (shadcn) y estilos globales.
 ## Entregables
 
 ### Sí
-- Landing pública en Vercel con URL compartible
+- Landing pública en el dominio del equipo (VPS) con URL compartible
 - Video demo de 2-3 minutos embebido en la landing
 - Deck del pitch (10-12 slides) en PDF o Google Slides con link público
 - Copy final de cada sección alineado al `PITCH.md`
@@ -114,7 +114,7 @@ Asegurate de que Lighthouse dé al menos 90 en Performance, Accessibility y SEO.
 
 ## Checkpoints de tu progreso
 
-- **H+2:** landing con estructura y placeholder desplegada en Vercel
+- **H+2:** landing con estructura y placeholder desplegada en el VPS
 - **H+6:** todas las secciones armadas con copy provisorio
 - **H+10:** copy final aplicado, animaciones del hero listas
 - **H+14:** deck del pitch al 70%

@@ -35,8 +35,7 @@ export function Onboarding({ onContinue }: OnboardingProps) {
           Elegí un nombre para empezar
         </h1>
         <p className="mt-2 text-sm text-slate-600">
-          Este onboarding es temporal hasta conectar los endpoints reales de
-          Character.
+          Crearemos tu personaje base y después podrás elegir el asistente del día.
         </p>
 
         <label className="mt-6 block text-sm font-medium text-slate-700" htmlFor="name">
