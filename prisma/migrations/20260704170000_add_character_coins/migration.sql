@@ -1,2 +1,0 @@
--- AlterTable
-ALTER TABLE "Character" ADD COLUMN "coins" INTEGER NOT NULL DEFAULT 1000;

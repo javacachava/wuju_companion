@@ -14,9 +14,10 @@ Es un producto real, no una demo — pero este repo es el MVP de hackathon de 24
 - **Estilo:** Tailwind CSS v4 + shadcn/ui + Framer Motion
 - **IA:** Vercel AI SDK con OpenAI/Codex (streaming)
 - **Voz:** ElevenLabs API
-- **Datos:** SQLite + Prisma ORM
+- **Datos:** PostgreSQL + Prisma ORM
+- **Data MCP:** DataMCP como gateway MCP seguro hacia PostgreSQL para Codex/Cursor/Claude
 - **Automatización:** n8n Cloud (cupón Pro del hackathon) o Docker en el VPS, para el track n8n
-- **Deploy:** VPS propio (`next start` + pm2 + Caddy). SQLite necesita disco persistente — no serverless
+- **Deploy:** VPS propio (`next start` + pm2 + Caddy) con PostgreSQL local/gestionado
 - **Package manager:** pnpm
 
 ## Estructura del monorepo
@@ -87,4 +88,5 @@ Cuando trabajes en un endpoint, componente o feature:
 1. Lee `docs/CONTRATOS.md` primero
 2. Lee la doc específica de tu dev (`docs/DEV-A.md`, `DEV-B.md`, etc.)
 3. Genera código que respete los contratos exactos, no los que "te parecen razonables"
-4. Si algo del contrato es ambiguo, preguntá antes de asumir
+4. Si tocás base de datos, deploy o herramientas MCP, lee también `docs/DATAMCP.md`
+5. Si algo del contrato es ambiguo, preguntá antes de asumir

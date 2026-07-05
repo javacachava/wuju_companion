@@ -319,14 +319,18 @@ Body:
 ## Variables de entorno
 
 ```env
-DATABASE_URL="file:./dev.db"
+DATABASE_URL="postgresql://companero:companero@localhost:5432/companero?schema=public"
 OPENAI_API_KEY=
 ELEVENLABS_API_KEY=
 N8N_WEBHOOK_URL=
 N8N_WEBHOOK_SECRET=
 FAL_API_KEY=
+DATAMCP_MCP_URL=
+DATAMCP_API_KEY=
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
+
+`DATAMCP_*` es para herramientas MCP (Codex/Cursor/Claude). La app sigue usando `DATABASE_URL` vía Prisma para leer/escribir datos.
 
 ## Flujos completos
 

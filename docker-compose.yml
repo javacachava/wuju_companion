@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: companero-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: companero
+      POSTGRES_USER: companero
+      POSTGRES_PASSWORD: companero
+    ports:
+      - "5432:5432"
+    volumes:
+      - companero_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U companero -d companero"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  companero_postgres_data:

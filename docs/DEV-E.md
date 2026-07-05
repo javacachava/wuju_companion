@@ -41,14 +41,17 @@ apps/web/app/api/skills/      ← endpoints de skills
 ### Prompt 1 — schema Prisma
 
 ```
-Instalá prisma y @prisma/client. Configurá con SQLite:
-- DATABASE_URL="file:./dev.db"
+Instalá prisma y @prisma/client. Configurá con PostgreSQL:
+- DATABASE_URL="postgresql://companero:companero@localhost:5432/companero?schema=public"
+
+Para dev local, levantá Postgres con:
+- docker compose up -d postgres
 
 Creá prisma/schema.prisma con los 5 modelos EXACTOS de docs/CONTRATOS.md sección "Modelo de datos (Prisma)".
 No agregues campos que no estén en los contratos. No cambies nombres.
 
 Corré:
-- pnpm prisma migrate dev --name init
+- pnpm prisma migrate deploy --schema prisma/schema.prisma
 - pnpm prisma generate
 
 Creá apps/web/lib/db.ts con el cliente Prisma singleton para evitar problemas con hot reload en dev:
@@ -151,7 +154,7 @@ Corré pnpm prisma db seed y verificá en Prisma Studio.
 ## Herramientas extra útiles
 
 - **Prisma Studio** (`pnpm prisma studio`) — GUI para ver la data en vivo
-- **DB Browser for SQLite** — alternativa desktop
+- **DataMCP** — gateway MCP hacia PostgreSQL para que Codex/Cursor/Claude puedan inspeccionar/queryar con permisos
 - **Zod** — validá TODO input externo
 - **tsx** — corre TypeScript directo sin build
 - **Postman** o **Bruno** — probar endpoints sin frontend
@@ -171,7 +174,7 @@ Corré pnpm prisma db seed y verificá en Prisma Studio.
 
 1. **El schema cambia después de que otros ya lo están usando.** Mitigación: cerrar el schema en H+2 y no cambiarlo salvo emergencia. Si hay que cambiarlo, avisar al equipo entero.
 2. **Los seeds no reflejan la realidad de los assets.** Mitigación: en H+6, revisar con Dev B qué archivos de imagen están efectivamente en `public/parts/` y actualizar el seed.
-3. **Prisma en producción con SQLite.** Deploy en VPS propio con `next start`, así que el archivo SQLite persiste en disco — sin problema. Poner `DATABASE_URL` apuntando a una ruta persistente del VPS (fuera del directorio del build) y correr `prisma migrate deploy` + seed en cada deploy. NO deployar la app a serverless (Vercel/Netlify): ahí el filesystem es efímero y la DB se pierde.
+3. **PostgreSQL en producción.** `DATABASE_URL` debe apuntar a una DB PostgreSQL persistente (VPS, Neon, Supabase, Railway, RDS, etc.). DataMCP no reemplaza la DB: se conecta a ese PostgreSQL como gateway MCP con permisos y auditoría.
 
 ## Coordinación con otros devs
 
