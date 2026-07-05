@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
@@ -22,17 +23,29 @@ function AppShellInner({ children }: AppShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, loading, logout } = useSession();
+  // En la app de escritorio (Tauri) escondemos el chrome de marketing para que
+  // se sienta una app, no la web. Detectamos window.__TAURI__ en el cliente.
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    const w = window as unknown as { __TAURI__?: unknown };
+    setIsDesktop(Boolean(w.__TAURI__));
+  }, []);
 
   const handleLogout = async () => {
     await logout();
-    router.push("/");
+    router.push(isDesktop ? "/companion" : "/");
   };
 
   return (
     <>
       <header className="sticky top-0 z-30 bg-white/95 backdrop-blur">
         <div className="mx-auto flex h-20 w-full max-w-[92rem] items-center justify-between px-5 sm:px-8">
-          <Link href="/" className="inline-flex items-center" aria-label="Wuju Companion">
+          <Link
+            href={isDesktop ? "/companion" : "/"}
+            className="inline-flex items-center"
+            aria-label="Wuju Companion"
+          >
             {/* eslint-disable-next-line @next/next/no-img-element -- logo provisto por el equipo */}
             <img
               src="/brand/logo-wuju.png"
@@ -41,20 +54,22 @@ function AppShellInner({ children }: AppShellProps) {
             />
           </Link>
 
-          <nav className="hidden items-center gap-12 text-sm font-semibold md:flex">
-            <NavLink href="/" active={pathname === "/"}>
-              Inicio
-            </NavLink>
-            <NavLink href="/marketplace" active={pathname.startsWith("/marketplace")}>
-              Marketplace
-            </NavLink>
-            <NavLink href="/#creadores" active={false}>
-              Creadores
-            </NavLink>
-            <NavLink href="/#funcionamiento" active={false}>
-              Funcionamiento
-            </NavLink>
-          </nav>
+          {isDesktop ? null : (
+            <nav className="hidden items-center gap-12 text-sm font-semibold md:flex">
+              <NavLink href="/" active={pathname === "/"}>
+                Inicio
+              </NavLink>
+              <NavLink href="/marketplace" active={pathname.startsWith("/marketplace")}>
+                Marketplace
+              </NavLink>
+              <NavLink href="/#creadores" active={false}>
+                Creadores
+              </NavLink>
+              <NavLink href="/#funcionamiento" active={false}>
+                Funcionamiento
+              </NavLink>
+            </nav>
+          )}
 
           <div className="flex items-center gap-3">
             {loading ? null : user ? (
