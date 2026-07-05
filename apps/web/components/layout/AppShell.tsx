@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CompanionGlobalProvider, useCompanionGlobal } from "@/components/companion/CompanionGlobalContext";
+import {
+  CompanionGlobalProvider,
+  useCompanionGlobal,
+} from "@/components/companion/CompanionGlobalContext";
 import { CompanionLaunchExperience } from "@/components/companion/CompanionLaunchExperience";
 import { Onboarding } from "@/components/companion/Onboarding";
 
@@ -33,26 +36,38 @@ function AppShellInner({ children }: AppShellProps) {
 
   return (
     <>
-      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur">
-        <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-4">
-          <nav className="flex items-center gap-2 text-sm">
+      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur">
+        <div className="mx-auto flex h-20 w-full max-w-[92rem] items-center justify-between px-5 sm:px-8">
+          <Link href="/" className="inline-flex items-center" aria-label="Wuju Companion">
+            {/* eslint-disable-next-line @next/next/no-img-element -- logo provisto por el equipo */}
+            <img
+              src="/brand/logo-wuju.png"
+              alt="Wuju Companion"
+              className="h-14 w-auto object-contain"
+            />
+          </Link>
+
+          <nav className="hidden items-center gap-12 text-sm font-semibold md:flex">
             <NavLink href="/" active={pathname === "/"}>
               Inicio
             </NavLink>
-            <NavLink href="/companion" active={pathname.startsWith("/companion")}>
-              Companion
-            </NavLink>
             <NavLink href="/marketplace" active={pathname.startsWith("/marketplace")}>
               Marketplace
+            </NavLink>
+            <NavLink href="/#creadores" active={false}>
+              Creadores
+            </NavLink>
+            <NavLink href="/#funcionamiento" active={false}>
+              Funcionamiento
             </NavLink>
           </nav>
 
           <button
             type="button"
             onClick={openLauncher}
-            className="rounded-md bg-blue-700 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-blue-800"
+            className="rounded-md bg-[#06162b] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0b2342]"
           >
-            Caja/Mascota
+            Comenzar
           </button>
         </div>
       </header>
@@ -107,10 +122,10 @@ function NavLink({ href, active, children }: NavLinkProps) {
   return (
     <Link
       href={href}
-      className={`rounded-md px-3 py-1.5 transition ${
+      className={`relative px-1 py-2 transition after:absolute after:-bottom-2 after:left-0 after:h-0.5 after:rounded-full after:transition-all ${
         active
-          ? "bg-blue-50 text-blue-700"
-          : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+          ? "text-slate-950 after:w-9 after:bg-blue-600"
+          : "text-slate-900 after:w-0 after:bg-blue-600 hover:text-blue-700 hover:after:w-9"
       }`}
     >
       {children}

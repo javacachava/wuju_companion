@@ -1,247 +1,227 @@
 import Link from "next/link";
 import {
-  BriefcaseBusiness,
-  Check,
-  Code2,
+  Bot,
+  Cpu,
   Github,
-  GraduationCap,
-  Layers3,
-  LockKeyhole,
-  Megaphone,
-  Palette,
-  ShieldCheck,
+  Globe2,
+  Heart,
+  Instagram,
+  Mail,
+  MessageCircle,
+  PanelsTopLeft,
+  ShoppingBag,
   Sparkles,
-  X,
 } from "lucide-react";
 
-const repoUrl = "https://github.com/javacachava/wuju_companion";
+const providers = [
+  { name: "OpenAI", Icon: Bot, className: "text-slate-950" },
+  { name: "Claude", Icon: Sparkles, className: "text-slate-950" },
+  { name: "Gemini", Icon: Sparkles, className: "text-blue-600" },
+  { name: "Local AI", Icon: Cpu, className: "text-slate-950" },
+];
 
-const howItWorks = [
+const footerColumns = [
   {
-    title: "Elegís quién es",
-    text: "Mascota, personalidad y voz. El Compañero trabaja al lado tuyo sin perder identidad.",
-    Icon: Sparkles,
+    title: "Producto",
+    links: [
+      { label: "Inicio", href: "/" },
+      { label: "Marketplace", href: "/marketplace" },
+      { label: "Creadores", href: "/#creadores" },
+      { label: "Funcionamiento", href: "/#funcionamiento" },
+    ],
   },
   {
-    title: "Elegís qué sabe",
-    text: "El primer pack completo es desarrollo: chat conversacional y Guardián de código.",
-    Icon: Layers3,
+    title: "Recursos",
+    links: [
+      { label: "Documentación", href: "/#documentacion" },
+      { label: "Guías", href: "/#guias" },
+      { label: "Preguntas frecuentes", href: "/#preguntas" },
+      { label: "Blog", href: "/#blog" },
+    ],
   },
   {
-    title: "Elegís qué puede tocar",
-    text: "Los permisos son explícitos, revocables y auditables porque el core es software libre.",
-    Icon: LockKeyhole,
+    title: "Empresa",
+    links: [
+      { label: "Sobre nosotros", href: "/#nosotros" },
+      { label: "Contacto", href: "mailto:equipo@companero.dev" },
+      { label: "Términos de servicio", href: "/#terminos" },
+      { label: "Política de privacidad", href: "/#privacidad" },
+    ],
   },
 ];
 
-const comparison = [
-  { name: "Cursor", values: [false, false, false, false, false] },
-  { name: "ChatGPT", values: [false, true, false, true, false] },
-  { name: "Character.ai", values: [true, true, false, false, false] },
-  { name: "El Compañero", values: [true, true, true, true, true], highlight: true },
+const socialLinks = [
+  { label: "GitHub", href: "https://github.com/javacachava/wuju_companion", Icon: Github },
+  { label: "Comunidad", href: "/#comunidad", Icon: MessageCircle },
+  { label: "Discord", href: "/#discord", Icon: Bot },
+  { label: "Instagram", href: "/#instagram", Icon: Instagram },
 ];
-
-const roadmap = [
-  { title: "Marketing", text: "Análisis de campañas y copy con contexto.", Icon: Megaphone },
-  { title: "Diseño", text: "Crítica visual, variantes y checklist de entrega.", Icon: Palette },
-  { title: "Negocios", text: "Síntesis, decisiones y seguimiento operativo.", Icon: BriefcaseBusiness },
-  { title: "Estudio", text: "Tutoría guiada y repaso con voz.", Icon: GraduationCap },
-];
-
-function MascotPreview() {
-  return (
-    <div className="pointer-events-none absolute bottom-[-3rem] right-[-1rem] hidden h-[34rem] w-[34rem] opacity-95 md:block lg:right-[4rem]">
-      {[
-        ["/parts/body.png", "z-10"],
-        ["/parts/clothing-hoodie.png", "z-20"],
-        ["/parts/hair-corto.png", "z-30"],
-        ["/parts/eyes-lentes.png", "z-40"],
-        ["/parts/mouth-sonrisa.png", "z-50"],
-        ["/parts/accessory-audifonos.png", "z-60"],
-      ].map(([src, z]) => (
-        // eslint-disable-next-line @next/next/no-img-element -- preview local compuesto desde /public/parts
-        <img
-          key={src}
-          src={src}
-          alt=""
-          className={`absolute inset-0 h-full w-full object-contain ${z}`}
-        />
-      ))}
-    </div>
-  );
-}
-
-function Mark({ enabled }: { enabled: boolean }) {
-  return enabled ? (
-    <Check className="mx-auto h-4 w-4 text-emerald-600" />
-  ) : (
-    <X className="mx-auto h-4 w-4 text-slate-300" />
-  );
-}
 
 export default function LandingPage() {
   return (
-    <main className="bg-white text-slate-900">
-      <section className="relative overflow-hidden border-b border-slate-200 bg-[#F7FAFC]">
-        <MascotPreview />
-        <div className="mx-auto max-w-6xl px-4 py-20 md:py-28">
+    <main className="overflow-hidden bg-white text-[#07172d]">
+      <section className="relative min-h-[calc(100vh-5rem)] overflow-hidden border-b border-slate-200 bg-white">
+        <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[58vw] lg:block">
+          {/* eslint-disable-next-line @next/next/no-img-element -- asset entregado para el hero principal */}
+          <img
+            src="/brand/hero-inicio.png"
+            alt=""
+            className="h-full w-full object-cover object-center"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-white via-white/45 to-white/0" />
+          <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-white to-white/0" />
+        </div>
+
+        <div className="mx-auto grid min-h-[calc(100vh-5rem)] w-full max-w-[92rem] items-center px-5 py-12 sm:px-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:py-16">
           <div className="relative z-10 max-w-2xl">
-            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-blue-700">
-              Software libre bajo AGPL-3.0
-            </p>
-            <h1 className="mt-5 text-4xl font-bold tracking-normal text-[#1A365D] md:text-6xl">
-              Tu compañero de trabajo. Con la cara y voz que elegís.
+            <h1 className="max-w-3xl text-4xl font-bold leading-[1.12] tracking-normal text-[#07172d] sm:text-5xl lg:text-[4.45rem]">
+              Tu asistente de IA.
+              <br />
+              Tu compañero digital.
             </h1>
-            <p className="mt-5 max-w-xl text-lg leading-8 text-slate-600">
-              Libre y auditable. Elegís quién es. Elegís qué puede hacer.
+            <p className="mt-7 max-w-xl text-lg leading-8 text-slate-600 sm:text-xl">
+              Wuju Companion da vida a la IA en tu escritorio. Un compañero
+              adorable que entiende tus proyectos, te ayuda a programar y crece
+              contigo.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
+
+            <div className="mt-10 flex flex-col gap-4 sm:flex-row">
               <Link
                 href="/companion"
-                className="inline-flex items-center justify-center rounded-md bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+                className="inline-flex min-h-14 items-center justify-center gap-3 rounded-md bg-[#06162b] px-7 text-base font-semibold text-white shadow-sm transition hover:bg-[#0b2342]"
               >
-                Probalo ahora
+                <PanelsTopLeft className="h-5 w-5" />
+                Descargar para Windows
               </Link>
               <Link
-                href={repoUrl}
-                className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
+                href="/marketplace"
+                className="inline-flex min-h-14 items-center justify-center gap-3 rounded-md border border-slate-300 bg-white px-7 text-base font-semibold text-slate-900 transition hover:border-slate-400 hover:bg-slate-50"
               >
-                <Github className="h-4 w-4" />
-                Ver en GitHub
+                <ShoppingBag className="h-5 w-5" />
+                Explorar Marketplace
               </Link>
+            </div>
+
+            <div
+              id="funcionamiento"
+              className="mt-14 flex flex-wrap items-center gap-x-7 gap-y-4 text-sm font-semibold text-slate-950 sm:text-base"
+            >
+              <span className="font-medium text-slate-900">Funciona con:</span>
+              {providers.map(({ name, Icon, className }) => (
+                <span key={name} className={`inline-flex items-center gap-2 ${className}`}>
+                  <Icon className="h-5 w-5" />
+                  {name}
+                </span>
+              ))}
+            </div>
+
+            <div className="relative mt-10 aspect-[1517/1037] overflow-hidden lg:hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element -- asset entregado para el hero principal */}
+              <img
+                src="/brand/hero-inicio.png"
+                alt="Wuju Companion en un escritorio de trabajo"
+                className="h-full w-full object-cover object-center"
+              />
             </div>
           </div>
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-6xl gap-4 px-4 py-16 md:grid-cols-3 md:py-24">
-        {howItWorks.map(({ title, text, Icon }) => (
-          <article key={title} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-            <Icon className="h-6 w-6 text-blue-600" />
-            <h2 className="mt-4 text-lg font-semibold text-slate-900">{title}</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-600">{text}</p>
-          </article>
-        ))}
-      </section>
+      <footer id="creadores" className="border-t border-slate-200 bg-white px-5 py-10 sm:px-8">
+        <div className="mx-auto w-full max-w-[92rem]">
+          <div className="grid gap-10 lg:grid-cols-[1.55fr_0.7fr_0.7fr_0.7fr_1.7fr]">
+            <div>
+              <Link href="/" className="inline-flex items-center">
+                {/* eslint-disable-next-line @next/next/no-img-element -- logo provisto por el equipo */}
+                <img
+                  src="/brand/logo-wuju.png"
+                  alt="Wuju Companion"
+                  className="h-16 w-auto object-contain"
+                />
+              </Link>
+              <p className="mt-5 max-w-xs text-sm leading-6 text-slate-600">
+                Wuju Companion transforma la IA en un compañero de escritorio
+                que te entiende, te ayuda y crece contigo. Hecho para
+                desarrolladores, por desarrolladores.
+              </p>
+              <div className="mt-5 flex gap-3">
+                {socialLinks.map(({ label, href, Icon }) => (
+                  <Link
+                    key={label}
+                    href={href}
+                    aria-label={label}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#07172d] text-white transition hover:bg-[#15345f]"
+                  >
+                    <Icon className="h-4 w-4" />
+                  </Link>
+                ))}
+              </div>
+            </div>
 
-      <section className="border-y border-slate-200 bg-slate-50">
-        <div className="mx-auto grid max-w-6xl gap-6 px-4 py-16 md:grid-cols-2 md:py-24">
-          <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-            <ShieldCheck className="h-6 w-6 text-red-600" />
-            <h2 className="mt-4 text-xl font-semibold text-slate-900">Guardián de código</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              Pegás un fragmento vulnerable y devuelve severidad, línea, explicación y fix
-              propuesto. También lo narra con voz.
-            </p>
-            <pre className="mt-4 overflow-x-auto rounded-md bg-slate-950 p-4 font-mono text-xs text-slate-100">
-              {`critical · SQL Injection · línea 2\nUsá parámetros preparados u ORM.`}
-            </pre>
-          </article>
-          <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-            <Code2 className="h-6 w-6 text-amber-700" />
-            <h2 className="mt-4 text-xl font-semibold text-slate-900">Guardián de despliegue</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              Revisión de configuración, secretos y permisos antes de publicar. Este es el
-              siguiente paso del pack de desarrollo.
-            </p>
-            <span className="mt-4 inline-flex rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
-              Próximamente
-            </span>
-          </article>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-6xl px-4 py-16 md:py-24">
-        <div className="max-w-2xl">
-          <h2 className="text-2xl font-bold text-slate-900">Cómo se compara</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
-            Cursor es velocidad. ChatGPT es respuesta. Character.ai es compañía. El Compañero
-            apunta a unir esas tres cosas con código abierto.
-          </p>
-        </div>
-        <div className="mt-6 overflow-x-auto rounded-lg border border-slate-200">
-          <table className="w-full min-w-[720px] border-collapse text-sm">
-            <thead className="bg-slate-50 text-slate-500">
-              <tr>
-                <th className="px-4 py-3 text-left font-semibold">Producto</th>
-                {["Personalidad", "Voz", "Permisos", "Multi-vertical", "Código abierto"].map(
-                  (label) => (
-                    <th key={label} className="px-4 py-3 text-center font-semibold">
-                      {label}
-                    </th>
-                  ),
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {comparison.map((row) => (
-                <tr key={row.name} className={row.highlight ? "bg-blue-50" : "bg-white"}>
-                  <td className="border-t border-slate-200 px-4 py-3 font-semibold">
-                    {row.name}
-                  </td>
-                  {row.values.map((value, index) => (
-                    <td key={index} className="border-t border-slate-200 px-4 py-3">
-                      <Mark enabled={value} />
-                    </td>
+            {footerColumns.map((column) => (
+              <nav key={column.title}>
+                <h2 className="text-sm font-bold text-slate-950">{column.title}</h2>
+                <div className="mt-5 space-y-3">
+                  {column.links.map((link) => (
+                    <Link
+                      key={link.label}
+                      href={link.href}
+                      className="block text-sm text-slate-600 transition hover:text-slate-950"
+                    >
+                      {link.label}
+                    </Link>
                   ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section className="border-y border-slate-200 bg-slate-50">
-        <div className="mx-auto max-w-6xl px-4 py-16 md:py-24">
-          <h2 className="text-2xl font-bold text-slate-900">Roadmap</h2>
-          <div className="mt-6 grid gap-4 md:grid-cols-4">
-            {roadmap.map(({ title, text, Icon }) => (
-              <article key={title} className="rounded-lg border border-slate-200 bg-white p-4">
-                <Icon className="h-5 w-5 text-slate-700" />
-                <h3 className="mt-3 font-semibold text-slate-900">{title}</h3>
-                <p className="mt-1 text-sm leading-6 text-slate-600">{text}</p>
-              </article>
+                </div>
+              </nav>
             ))}
+
+            <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex items-start gap-4">
+                <span className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-slate-200 text-slate-800">
+                  <Mail className="h-6 w-6" />
+                </span>
+                <div>
+                  <h2 className="text-base font-bold text-slate-950">Mantente al día</h2>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">
+                    Suscríbete a nuestro boletín para recibir novedades y
+                    actualizaciones.
+                  </p>
+                </div>
+              </div>
+              <form className="mt-6 flex flex-col gap-3 sm:flex-row">
+                <label className="sr-only" htmlFor="newsletter-email">
+                  Tu correo electrónico
+                </label>
+                <input
+                  id="newsletter-email"
+                  type="email"
+                  placeholder="Tu correo electrónico"
+                  className="min-h-12 min-w-0 flex-1 rounded-md border border-slate-200 px-4 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                />
+                <button
+                  type="button"
+                  className="min-h-12 rounded-md bg-[#06162b] px-5 text-sm font-semibold text-white transition hover:bg-[#0b2342]"
+                >
+                  Suscribirse
+                </button>
+              </form>
+            </div>
           </div>
-        </div>
-      </section>
 
-      <section className="mx-auto grid max-w-6xl gap-6 px-4 py-16 md:grid-cols-2 md:py-24">
-        <article>
-          <h2 className="text-2xl font-bold text-slate-900">Open source</h2>
-          <p className="mt-3 text-sm leading-6 text-slate-600">
-            Porque un asistente que ve tus archivos debería ser un asistente que podés leer.
-            El core está publicado bajo AGPL-3.0.
-          </p>
-          <Link
-            href={repoUrl}
-            className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-blue-700"
-          >
-            <Github className="h-4 w-4" />
-            Repositorio público
-          </Link>
-        </article>
-        <article className="rounded-lg border border-slate-200 bg-[#F7FAFC] p-5">
-          <h2 className="text-2xl font-bold text-slate-900">Para empresas</h2>
-          <p className="mt-3 text-sm leading-6 text-slate-600">
-            Agentes empresariales pre-configurados para que cada practicante tenga un senior
-            virtual al lado. Setup alto, mantenimiento mensual.
-          </p>
-          <a
-            href="mailto:equipo@companero.dev?subject=El%20Compa%C3%B1ero%20para%20empresas"
-            className="mt-5 inline-flex rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
-          >
-            Hablemos
-          </a>
-        </article>
-      </section>
-
-      <footer className="border-t border-slate-200 px-4 py-8 text-sm text-slate-500">
-        <div className="mx-auto flex max-w-6xl flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <p>El Compañero · ElevenLabs · n8n · Codex</p>
-          <Link href={repoUrl} className="font-medium text-slate-700">
-            GitHub
-          </Link>
+          <div className="mt-10 flex flex-col gap-4 border-t border-slate-200 pt-6 text-sm text-slate-500 md:flex-row md:items-center md:justify-between">
+            <p>© 2025 Wuju Companion. Todos los derechos reservados.</p>
+            <div className="flex flex-wrap items-center gap-5">
+              <span className="inline-flex items-center gap-2">
+                <Globe2 className="h-4 w-4" />
+                Español
+              </span>
+              <span className="hidden h-5 w-px bg-slate-200 sm:block" />
+              <span className="inline-flex items-center gap-1">
+                Hecho con <Heart className="h-4 w-4 fill-red-500 text-red-500" /> para
+                desarrolladores
+              </span>
+            </div>
+          </div>
         </div>
       </footer>
     </main>
