@@ -18,6 +18,8 @@ type ChatPanelProps = {
   character: CharacterProfile;
   codeGuardianEnabled: boolean;
   onCharacterStateChange: (state: CharacterState) => void;
+  // "full" = vista chat principal (más alto, tipo ChatGPT). Default = panel compacto.
+  variant?: "full" | "compact";
 };
 
 type TauriGlobal = {
@@ -105,7 +107,10 @@ export function ChatPanel({
   character,
   codeGuardianEnabled,
   onCharacterStateChange,
+  variant = "compact",
 }: ChatPanelProps) {
+  const messagesHeightClass =
+    variant === "full" ? "min-h-[52vh] max-h-[62vh]" : "max-h-72 min-h-40";
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
@@ -521,7 +526,7 @@ export function ChatPanel({
         ) : null}
       </div>
 
-      <div className="mt-4 max-h-72 min-h-40 space-y-3 overflow-y-auto rounded-lg border border-slate-100 bg-slate-50 p-3">
+      <div className={`mt-4 ${messagesHeightClass} space-y-3 overflow-y-auto rounded-lg border border-slate-100 bg-slate-50 p-3`}>
         {messages.length === 0 ? (
           <p className="text-sm text-slate-500">
             Todavía no hay mensajes. Decile hola al Compañero.
