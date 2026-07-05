@@ -59,14 +59,22 @@ function AppShellInner({ children }: AppShellProps) {
           <div className="flex items-center gap-3">
             {loading ? null : user ? (
               <>
-                <span className="hidden text-sm text-slate-600 sm:inline">{user.email}</span>
+                <div className="hidden items-center gap-2 rounded-full border border-slate-200 bg-white py-1 pl-1 pr-3 sm:flex">
+                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#06162b] text-sm font-semibold uppercase text-white">
+                    {user.email.charAt(0)}
+                  </span>
+                  <span className="max-w-[160px] truncate text-sm font-medium text-slate-700">
+                    {user.email}
+                  </span>
+                </div>
                 <button
                   type="button"
                   onClick={() => void handleLogout()}
+                  aria-label="Cerrar sesión"
                   className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
                 >
                   <LogOut className="h-4 w-4" />
-                  Salir
+                  <span className="hidden sm:inline">Salir</span>
                 </button>
                 <button
                   type="button"

@@ -8,9 +8,13 @@ import {
   Instagram,
   Mail,
   MessageCircle,
+  Mic,
   PanelsTopLeft,
+  Package,
+  ShieldCheck,
   ShoppingBag,
   Sparkles,
+  UserRoundCog,
 } from "lucide-react";
 
 const providers = [
@@ -18,6 +22,44 @@ const providers = [
   { name: "Claude", Icon: Sparkles, className: "text-slate-950" },
   { name: "Gemini", Icon: Sparkles, className: "text-blue-600" },
   { name: "Local AI", Icon: Cpu, className: "text-slate-950" },
+];
+
+const howItWorks = [
+  {
+    Icon: UserRoundCog,
+    title: "Elegí quién es",
+    text: "Creá tu cuenta y armá tu compañero: personaje, voz y personalidad. Queda guardado en tu cuenta.",
+  },
+  {
+    Icon: Package,
+    title: "Dale capacidades",
+    text: "Sumá packs desde el marketplace. Los gratis se desbloquean al instante; los premium con un click.",
+  },
+  {
+    Icon: ShieldCheck,
+    title: "Controlá qué puede tocar",
+    text: "Micrófono, portapapeles, pantalla: cada permiso lo otorgás y lo revocás vos. Claro y auditable.",
+  },
+  {
+    Icon: Mic,
+    title: "Trabajá con voz",
+    text: "Le hablás, te entiende y te responde con voz. Pegás código y te lo audita al instante.",
+  },
+];
+
+const values = [
+  {
+    title: "Libre y de código abierto",
+    text: "Licencia AGPL-3.0. Cualquiera puede instalar, auditar y modificar. Un asistente que ve tus archivos debería ser uno que podés leer.",
+  },
+  {
+    title: "Vos tenés el control",
+    text: "Nada de acceso opaco. Cada capacidad pasa por permisos explícitos que otorgás y revocás cuando quieras.",
+  },
+  {
+    title: "Crece con la comunidad",
+    text: "Un marketplace curado donde creadores publican personajes y packs. El cascarón es libre; el ecosistema, abierto.",
+  },
 ];
 
 const footerColumns = [
@@ -102,10 +144,7 @@ export default function LandingPage() {
               </Link>
             </div>
 
-            <div
-              id="funcionamiento"
-              className="mt-14 flex flex-wrap items-center gap-x-7 gap-y-4 text-sm font-semibold text-slate-950 sm:text-base"
-            >
+            <div className="mt-14 flex flex-wrap items-center gap-x-7 gap-y-4 text-sm font-semibold text-slate-950 sm:text-base">
               <span className="font-medium text-slate-900">Funciona con:</span>
               {providers.map(({ name, Icon, className }) => (
                 <span key={name} className={`inline-flex items-center gap-2 ${className}`}>
@@ -127,7 +166,89 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <footer id="creadores" className="border-t border-slate-200 bg-white px-5 py-10 sm:px-8">
+      {/* Cómo funciona */}
+      <section id="funcionamiento" className="border-b border-slate-200 bg-slate-50 px-5 py-20 sm:px-8 md:py-28">
+        <div className="mx-auto w-full max-w-[92rem]">
+          <div className="max-w-2xl">
+            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-blue-700">
+              Funcionamiento
+            </p>
+            <h2 className="mt-4 text-3xl font-bold text-[#07172d] sm:text-4xl">
+              De cuenta nueva a compañero con voz, en cuatro pasos.
+            </h2>
+            <p className="mt-4 text-base leading-7 text-slate-600">
+              Sin fricción y con vos siempre al mando de qué puede hacer.
+            </p>
+          </div>
+
+          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {howItWorks.map(({ Icon, title, text }, index) => (
+              <article
+                key={title}
+                className="flex flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[#06162b] text-white">
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <span className="text-4xl font-bold text-slate-100">{index + 1}</span>
+                </div>
+                <h3 className="mt-5 text-lg font-bold text-[#07172d]">{title}</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-600">{text}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Sobre nosotros / Creadores */}
+      <section id="creadores" className="border-b border-slate-200 bg-white px-5 py-20 sm:px-8 md:py-28">
+        <div className="mx-auto grid w-full max-w-[92rem] gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:items-center">
+          <div id="nosotros">
+            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-blue-700">
+              Sobre nosotros
+            </p>
+            <h2 className="mt-4 text-3xl font-bold text-[#07172d] sm:text-4xl">
+              Un compañero libre, hecho para durar.
+            </h2>
+            <p className="mt-5 max-w-xl text-base leading-7 text-slate-600">
+              Wuju Companion no es otra caja negra. Es un cascarón universal, abierto y
+              auditable, al que vos le elegís la cara, la voz y —sobre todo— qué puede tocar
+              de tu computadora. Construido por internautas, para internautas.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-4">
+              <Link
+                href="/companion"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-[#06162b] px-6 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0b2342]"
+              >
+                <Sparkles className="h-4 w-4" />
+                Crear mi compañero
+              </Link>
+              <Link
+                href="https://github.com/javacachava/wuju_companion"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-6 text-sm font-semibold text-slate-900 transition hover:bg-slate-50"
+              >
+                <Github className="h-4 w-4" />
+                Ver el código
+              </Link>
+            </div>
+          </div>
+
+          <div className="grid gap-4">
+            {values.map(({ title, text }) => (
+              <article
+                key={title}
+                className="rounded-2xl border border-slate-200 bg-slate-50 p-6"
+              >
+                <h3 className="text-base font-bold text-[#07172d]">{title}</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-600">{text}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <footer className="border-t border-slate-200 bg-white px-5 py-10 sm:px-8">
         <div className="mx-auto w-full max-w-[92rem]">
           <div className="grid gap-10 lg:grid-cols-[1.55fr_0.7fr_0.7fr_0.7fr_1.7fr]">
             <div>
