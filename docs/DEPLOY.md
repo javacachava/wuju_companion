@@ -26,8 +26,10 @@ curl -fsSL https://deb.nodesource.com/setup_20.x | sudo bash - && sudo apt insta
 npm i -g pnpm pm2
 
 # 2. PostgreSQL
-# Opción simple en VPS: Docker Compose del repo.
-# Alternativa recomendada si hay tiempo: Neon/Supabase/Railway Postgres gestionado.
+# Decisión actual del equipo: Supabase (proyecto ya creado y seedeado).
+# Usar el SESSION POOLER (IPv4) — la conexión directa db.<ref>.supabase.co es IPv6-only:
+#   DATABASE_URL="postgresql://postgres.<ref>:<password-url-encoded>@aws-1-<region>.pooler.supabase.com:5432/postgres?schema=public"
+# Alternativa offline/local: docker compose up -d postgres, o ./scripts/pg-local.sh install (sin Docker).
 
 # 3. Código
 git clone https://github.com/javacachava/wuju_companion.git ~/companero && cd ~/companero

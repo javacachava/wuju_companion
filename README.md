@@ -65,8 +65,10 @@ pnpm install
 cp .env.example .env
 # Editar .env con tus API keys
 
-# Levantar PostgreSQL local
+# Levantar PostgreSQL local (opción 1: Docker)
 docker compose up -d postgres
+# (opción 2: sin Docker ni sudo — binarios portables)
+./scripts/pg-local.sh install
 
 # Setup de la base de datos
 pnpm prisma migrate deploy --schema prisma/schema.prisma
