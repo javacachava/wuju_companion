@@ -1,5 +1,6 @@
 import { formatDataStreamPart } from "ai";
 import { z } from "zod";
+import type { Message } from "@prisma/client";
 
 import { chatWithCompanion } from "@/lib/ai";
 import { describeAiError } from "@/lib/ai-errors";
@@ -83,7 +84,7 @@ export async function POST(request: Request) {
     const lastMessages = character.messages
       .slice()
       .reverse()
-      .map((message) => ({
+      .map((message: Message) => ({
         role: message.role === "assistant" ? ("assistant" as const) : ("user" as const),
         content: message.content,
       }));

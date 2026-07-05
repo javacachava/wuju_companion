@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { Part, Prisma } from "@prisma/client";
 
 import { db } from "@/lib/db";
 
@@ -6,6 +7,7 @@ const categories = ["hair", "eyes", "mouth", "accessory", "clothing"] as const;
 const CategorySchema = z.enum(categories);
 
 type Category = (typeof categories)[number];
+type SerializedPart = { id: string; imageUrl: string };
 
 const slotFieldByCategory: Record<
   Category,
@@ -43,40 +45,41 @@ async function serializeCharacter(characterId: string) {
     .map((category) => character[slotFieldByCategory[category]])
     .filter((partId): partId is string => Boolean(partId));
 
-  const parts = await db.part.findMany({
+  const parts: Part[] = await db.part.findMany({
     where: {
       id: { in: slotIds },
     },
   });
 
-  const partsById = new Map(parts.map((part) => [part.id, part]));
+  const partsById = new Map<string, Part>(parts.map((part) => [part.id, part]));
+  const serializedParts: Record<Category, SerializedPart | null> = Object.fromEntries(
+    categories.map((category) => {
+      const partId = character[slotFieldByCategory[category]];
+      const part = partId ? partsById.get(partId) : null;
+
+      return [
+        category,
+        part
+          ? {
+              id: part.id,
+              imageUrl: part.imageUrl,
+            }
+          : null,
+      ];
+    }),
+  ) as Record<Category, SerializedPart | null>;
 
   return {
     id: character.id,
     userName: character.userName,
     personality: character.personality,
     voiceId: character.voiceId,
-    parts: Object.fromEntries(
-      categories.map((category) => {
-        const partId = character[slotFieldByCategory[category]];
-        const part = partId ? partsById.get(partId) : null;
-
-        return [
-          category,
-          part
-            ? {
-                id: part.id,
-                imageUrl: part.imageUrl,
-              }
-            : null,
-        ];
-      }),
-    ),
+    parts: serializedParts,
   };
 }
 
 async function getDefaultParts() {
-  const parts = await Promise.all(
+  const parts: Part[] = await Promise.all(
     categories.map((category) =>
       db.part.findFirstOrThrow({
         where: {
@@ -100,7 +103,7 @@ async function createCharacter(userName: string) {
     where: { isPremium: false },
   });
 
-  return db.$transaction(async (tx) => {
+  return db.$transaction(async (tx: Prisma.TransactionClient) => {
     const character = await tx.character.create({
       data: {
         userName,
