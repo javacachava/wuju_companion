@@ -16,6 +16,11 @@ export const metadata: Metadata = {
   title: "Wuju Companion - Tu asistente de IA",
   description:
     "Wuju Companion da vida a la IA en tu escritorio. Te ayuda a programar y crece contigo.",
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
+  },
   openGraph: {
     title: "Wuju Companion - Tu asistente de IA",
     description:

@@ -1,7 +1,8 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, GraduationCap, ShieldCheck } from "lucide-react";
 import { useState } from "react";
+import { lessonFor } from "@/lib/companion/vuln-knowledge";
 
 export type AuditFinding = {
   severity: "critical" | "high" | "medium" | "low";
@@ -17,6 +18,25 @@ export type AuditReportData = {
   summary: string;
   characterVoicedSummary: string;
 };
+
+const SEVERITY_WEIGHT: Record<AuditFinding["severity"], number> = {
+  critical: 30,
+  high: 18,
+  medium: 8,
+  low: 3,
+};
+
+// Score de seguridad 0-100 (100 = limpio). Penaliza por severidad.
+function securityScore(findings: AuditFinding[]) {
+  const penalty = findings.reduce((total, f) => total + SEVERITY_WEIGHT[f.severity], 0);
+  return Math.max(0, 100 - penalty);
+}
+
+function scoreTone(score: number) {
+  if (score >= 80) return { ring: "text-emerald-600", label: "Sólido" };
+  if (score >= 50) return { ring: "text-amber-600", label: "Mejorable" };
+  return { ring: "text-red-600", label: "En riesgo" };
+}
 
 const severityMeta: Record<
   AuditFinding["severity"],
@@ -44,25 +64,59 @@ const severityMeta: Record<
   },
 };
 
-function summaryClass(findings: AuditFinding[]) {
-  if (findings.some((finding) => finding.severity === "critical")) {
-    return "border-red-200 bg-red-50 text-red-800";
-  }
-
-  if (findings.some((finding) => finding.severity === "high" || finding.severity === "medium")) {
-    return "border-yellow-200 bg-yellow-50 text-yellow-800";
-  }
-
-  return "border-emerald-200 bg-emerald-50 text-emerald-800";
-}
-
 export function AuditReport({ report }: { report: AuditReportData }) {
   const [open, setOpen] = useState<string | null>(report.findings[0]?.title ?? null);
 
+  const score = securityScore(report.findings);
+  const tone = scoreTone(score);
+  const counts = report.findings.reduce(
+    (acc, f) => {
+      acc[f.severity] += 1;
+      return acc;
+    },
+    { critical: 0, high: 0, medium: 0, low: 0 },
+  );
+
   return (
     <div className="space-y-3">
-      <div className={`rounded-lg border px-3 py-2 text-sm ${summaryClass(report.findings)}`}>
-        {report.summary}
+      {/* Header pro: score + distribución */}
+      <div className="flex flex-wrap items-center gap-4 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+        <div className="relative flex h-16 w-16 shrink-0 items-center justify-center">
+          <svg viewBox="0 0 36 36" className="h-16 w-16 -rotate-90">
+            <circle cx="18" cy="18" r="15.5" fill="none" stroke="#e2e8f0" strokeWidth="3" />
+            <circle
+              cx="18"
+              cy="18"
+              r="15.5"
+              fill="none"
+              strokeWidth="3"
+              strokeLinecap="round"
+              className={tone.ring}
+              stroke="currentColor"
+              strokeDasharray={`${(score / 100) * 97.4} 97.4`}
+            />
+          </svg>
+          <span className="absolute text-sm font-bold text-slate-800">{score}</span>
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="flex items-center gap-1.5 text-sm font-bold text-slate-900">
+            <ShieldCheck className="h-4 w-4 text-slate-500" />
+            Seguridad: {tone.label}
+          </p>
+          <p className="mt-0.5 text-xs text-slate-500">{report.summary}</p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {(["critical", "high", "medium", "low"] as const).map((sev) =>
+              counts[sev] > 0 ? (
+                <span
+                  key={sev}
+                  className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${severityMeta[sev].badge}`}
+                >
+                  {counts[sev]} {severityMeta[sev].label.toLowerCase()}
+                </span>
+              ) : null,
+            )}
+          </div>
+        </div>
       </div>
 
       {report.findings.length === 0 ? (
@@ -100,15 +154,41 @@ export function AuditReport({ report }: { report: AuditReportData }) {
                 </button>
 
                 {expanded ? (
-                  <div className="space-y-2 border-t border-slate-100 px-3 py-3 text-sm text-slate-700">
+                  <div className="space-y-3 border-t border-slate-100 px-3 py-3 text-sm text-slate-700">
                     <p>{finding.description}</p>
                     <p>
-                      <span className="font-semibold text-slate-900">Sugerencia:</span>{" "}
+                      <span className="font-semibold text-slate-900">Cómo lo arreglás:</span>{" "}
                       {finding.suggestion}
                     </p>
                     <pre className="overflow-x-auto rounded-md bg-slate-950 p-3 font-mono text-xs text-slate-100">
                       {finding.fixExample}
                     </pre>
+
+                    {/* Capa de aprendizaje */}
+                    {(() => {
+                      const lesson = lessonFor(finding.title);
+                      return (
+                        <div className="rounded-lg border border-blue-100 bg-blue-50/60 p-3">
+                          <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-blue-700">
+                            <GraduationCap className="h-4 w-4" />
+                            Aprendé: {lesson.topic}
+                          </p>
+                          <p className="mt-1.5 text-sm text-slate-700">
+                            <span className="font-semibold text-slate-900">Por qué importa:</span>{" "}
+                            {lesson.why}
+                          </p>
+                          <p className="mt-1 text-sm text-slate-700">
+                            <span className="font-semibold text-slate-900">Cómo prevenirlo:</span>{" "}
+                            {lesson.prevent}
+                          </p>
+                          {lesson.learnMore ? (
+                            <p className="mt-1.5 text-xs font-medium text-blue-600">
+                              Referencia: {lesson.learnMore}
+                            </p>
+                          ) : null}
+                        </div>
+                      );
+                    })()}
                   </div>
                 ) : null}
               </article>
