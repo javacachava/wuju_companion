@@ -13,6 +13,7 @@ import { CharacterProvider, type CharacterState } from "./CharacterContext";
 import { CharacterInfo } from "./CharacterInfo";
 import { CharacterStage } from "./CharacterStage";
 import { PartsGrid } from "./PartsGrid";
+import { PermissionsPanel } from "./PermissionsPanel";
 import { WardrobeSelector } from "./WardrobeSelector";
 
 type CompanionAppProps = {
@@ -26,6 +27,7 @@ export function CompanionApp({ character, onCharacterChange }: CompanionAppProps
   const [characterState, setCharacterState] = useState<CharacterState>("idle");
   const [codeGuardianEnabled, setCodeGuardianEnabled] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const [permissionsOpen, setPermissionsOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -114,8 +116,17 @@ export function CompanionApp({ character, onCharacterChange }: CompanionAppProps
               </p>
               <p className="text-sm text-slate-600">Personalización y capacidades</p>
             </div>
-            <div className="flex w-full max-w-xs items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500">
-              Buscar partes...
+            <div className="flex items-center gap-2">
+              <div className="flex w-full max-w-xs items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500">
+                Buscar partes...
+              </div>
+              <button
+                type="button"
+                onClick={() => setPermissionsOpen(true)}
+                className="shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+              >
+                Permisos
+              </button>
             </div>
           </header>
 
@@ -149,6 +160,7 @@ export function CompanionApp({ character, onCharacterChange }: CompanionAppProps
           ) : null}
         </section>
       </main>
+      <PermissionsPanel open={permissionsOpen} onClose={() => setPermissionsOpen(false)} />
     </CharacterProvider>
   );
 }

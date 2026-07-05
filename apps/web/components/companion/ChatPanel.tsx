@@ -1,8 +1,10 @@
 "use client";
 
-import { FormEvent, useCallback, useRef, useState } from "react";
-import { Loader2, Send, ShieldCheck, Volume2, X } from "lucide-react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { Loader2, Mic, ScanText, Send, ShieldCheck, Square, Volume2, X } from "lucide-react";
 import type { CharacterProfile } from "@/lib/companion/types";
+import { captureScreenContext, formatContextForPrompt, type ScreenContext } from "@/lib/context-builder";
+import { isPermissionEnabled } from "@/lib/permissions";
 import type { CharacterState } from "./CharacterContext";
 import { AuditReport, type AuditReportData } from "./AuditReport";
 
@@ -17,6 +19,71 @@ type ChatPanelProps = {
   codeGuardianEnabled: boolean;
   onCharacterStateChange: (state: CharacterState) => void;
 };
+
+type TauriGlobal = {
+  core?: {
+    invoke: <Result>(command: string, args?: Record<string, unknown>) => Promise<Result>;
+  };
+  fs?: {
+    readFile: (path: string) => Promise<Uint8Array | number[] | ArrayBuffer>;
+    remove: (path: string) => Promise<void>;
+  };
+};
+
+declare global {
+  interface Window {
+    __TAURI__?: TauriGlobal;
+  }
+}
+
+const START_RECORDING_COMMAND = "plugin:mic-recorder|start_recording";
+const STOP_RECORDING_COMMAND = "plugin:mic-recorder|stop_recording";
+const READ_FILE_COMMAND = "plugin:fs|read_file";
+const REMOVE_FILE_COMMAND = "plugin:fs|remove";
+
+// Salvavidas: sin esto, el usuario podría dejar el mic grabando indefinidamente
+// y generar un WAV que supera el límite de 25MB que acepta /api/voice-spike/transcribe.
+const MAX_RECORDING_MS = 60_000;
+
+function toUint8Array(value: Uint8Array | number[] | ArrayBuffer) {
+  if (value instanceof Uint8Array) {
+    return value;
+  }
+
+  if (value instanceof ArrayBuffer) {
+    return new Uint8Array(value);
+  }
+
+  return new Uint8Array(value);
+}
+
+async function readTauriFile(tauri: TauriGlobal, path: string) {
+  if (tauri.fs?.readFile) {
+    return toUint8Array(await tauri.fs.readFile(path));
+  }
+
+  if (!tauri.core?.invoke) {
+    throw new Error("tauri_fs_unavailable");
+  }
+
+  return toUint8Array(
+    await tauri.core.invoke<Uint8Array | number[] | ArrayBuffer>(READ_FILE_COMMAND, { path }),
+  );
+}
+
+async function removeTauriFile(tauri: TauriGlobal, path: string) {
+  try {
+    if (tauri.fs?.remove) {
+      await tauri.fs.remove(path);
+      return;
+    }
+
+    await tauri.core?.invoke(REMOVE_FILE_COMMAND, { path });
+  } catch (cleanupError) {
+    // No bloqueamos el flujo de chat por un WAV temporal que no se pudo borrar.
+    console.error("[voice-spike] no pude borrar el audio temporal:", cleanupError);
+  }
+}
 
 function decodeDataStreamLine(line: string) {
   const separator = line.indexOf(":");
@@ -48,8 +115,63 @@ export function ChatPanel({
   const [auditLanguage, setAuditLanguage] = useState("javascript");
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditReport, setAuditReport] = useState<AuditReportData | null>(null);
+  const [voiceSpikeAvailable, setVoiceSpikeAvailable] = useState(false);
+  const [voiceSpikeRecording, setVoiceSpikeRecording] = useState(false);
+  const [voiceSpikeTranscribing, setVoiceSpikeTranscribing] = useState(false);
+  const [screenContextCapturing, setScreenContextCapturing] = useState(false);
+  const [screenContextReady, setScreenContextReady] = useState<ScreenContext["source"] | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
   const audioCache = useRef(new Map<string, Blob>());
+  const formRef = useRef<HTMLFormElement>(null);
+  const pendingVoiceSubmit = useRef<string | null>(null);
+  const pendingScreenContext = useRef<ScreenContext | null>(null);
+  const maxRecordingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    setVoiceSpikeAvailable(Boolean(window.__TAURI__?.core?.invoke));
+  }, []);
+
+  const handleCaptureScreenContext = async () => {
+    const tauri = window.__TAURI__;
+    if (!tauri?.core?.invoke || screenContextCapturing) {
+      return;
+    }
+
+    if (!isPermissionEnabled("clipboard") && !isPermissionEnabled("screen")) {
+      setError("Portapapeles y pantalla están desactivados en Permisos.");
+      return;
+    }
+
+    setError(null);
+    setScreenContextCapturing(true);
+    setScreenContextReady(null);
+
+    try {
+      const context = await captureScreenContext(
+        { invoke: (command, args) => tauri.core!.invoke(command, args) },
+        {
+          clipboardAllowed: isPermissionEnabled("clipboard"),
+          screenAllowed: isPermissionEnabled("screen"),
+        },
+      );
+
+      if (!context) {
+        setError("No encontré nada copiado ni texto legible en pantalla.");
+        pendingScreenContext.current = null;
+        return;
+      }
+
+      pendingScreenContext.current = context;
+      setScreenContextReady(context.source);
+    } catch {
+      setError("No pude capturar el contexto de pantalla.");
+      pendingScreenContext.current = null;
+    } finally {
+      setScreenContextCapturing(false);
+    }
+  };
 
   const speak = useCallback(
     async (text: string) => {
@@ -103,10 +225,21 @@ export function ChatPanel({
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const message = input.trim();
-    if (!message || chatLoading) {
+    const displayMessage = (pendingVoiceSubmit.current ?? input).trim();
+    pendingVoiceSubmit.current = null;
+
+    if (!displayMessage || chatLoading) {
       return;
     }
+
+    // Si hay contexto de pantalla/portapapeles capturado (Fase 4), va SOLO al
+    // servidor — el usuario en pantalla sigue viendo únicamente lo que escribió.
+    const screenContext = pendingScreenContext.current;
+    pendingScreenContext.current = null;
+    setScreenContextReady(null);
+    const apiMessage = screenContext
+      ? formatContextForPrompt(screenContext, displayMessage)
+      : displayMessage;
 
     setError(null);
     setInput("");
@@ -116,7 +249,7 @@ export function ChatPanel({
     const userMessage: ChatMessage = {
       id: crypto.randomUUID(),
       role: "user",
-      content: message,
+      content: displayMessage,
     };
     const assistantMessage: ChatMessage = {
       id: crypto.randomUUID(),
@@ -133,7 +266,7 @@ export function ChatPanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           characterId: character.id,
-          message,
+          message: apiMessage,
           activeSkill: "chat-base",
         }),
       });
@@ -206,6 +339,116 @@ export function ChatPanel({
     }
   };
 
+  const injectVoiceTextAndSubmit = (text: string) => {
+    const message = text.trim();
+    if (!message) {
+      setError("No pude reconocer texto en el audio.");
+      return;
+    }
+
+    pendingVoiceSubmit.current = message;
+    setInput(message);
+    window.setTimeout(() => formRef.current?.requestSubmit(), 0);
+  };
+
+  const clearMaxRecordingTimer = useCallback(() => {
+    if (maxRecordingTimer.current !== null) {
+      clearTimeout(maxRecordingTimer.current);
+      maxRecordingTimer.current = null;
+    }
+  }, []);
+
+  const stopVoiceSpikeAndTranscribe = useCallback(async () => {
+    const tauri = window.__TAURI__;
+    clearMaxRecordingTimer();
+
+    if (!tauri?.core?.invoke) {
+      return;
+    }
+
+    setVoiceSpikeRecording(false);
+    setVoiceSpikeTranscribing(true);
+    onCharacterStateChange("thinking");
+
+    let recordingPath: string | null = null;
+
+    try {
+      recordingPath = await tauri.core.invoke<string>(STOP_RECORDING_COMMAND);
+    } catch {
+      setError("No pude detener la grabación.");
+      onCharacterStateChange("idle");
+      setVoiceSpikeTranscribing(false);
+      return;
+    }
+
+    try {
+      const audioBuffer = await readTauriFile(tauri, recordingPath);
+
+      const formData = new FormData();
+      formData.append("file", new File([audioBuffer], "voice-spike.wav", { type: "audio/wav" }));
+      formData.append("language", "es");
+
+      const response = await fetch("/api/voice-spike/transcribe", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = (await response.json().catch(() => null)) as { text?: string } | null;
+
+      if (!response.ok || typeof data?.text !== "string") {
+        setError(
+          response.status === 504
+            ? "La transcripción tardó demasiado. Probá de nuevo."
+            : "No pude transcribir el audio. Probá de nuevo.",
+        );
+        onCharacterStateChange("idle");
+        return;
+      }
+
+      injectVoiceTextAndSubmit(data.text);
+    } catch {
+      setError("No pude leer el audio grabado.");
+      onCharacterStateChange("idle");
+    } finally {
+      setVoiceSpikeTranscribing(false);
+      void removeTauriFile(tauri, recordingPath);
+    }
+  }, [clearMaxRecordingTimer, onCharacterStateChange]);
+
+  const handleVoiceSpike = async () => {
+    const tauri = window.__TAURI__;
+    if (!tauri?.core?.invoke || voiceSpikeTranscribing || chatLoading) {
+      return;
+    }
+
+    setError(null);
+
+    if (voiceSpikeRecording) {
+      await stopVoiceSpikeAndTranscribe();
+      return;
+    }
+
+    if (!isPermissionEnabled("mic")) {
+      setError("El micrófono está desactivado en Permisos.");
+      return;
+    }
+
+    try {
+      await tauri.core.invoke<unknown>(START_RECORDING_COMMAND);
+      setVoiceSpikeRecording(true);
+      onCharacterStateChange("thinking");
+      clearMaxRecordingTimer();
+      maxRecordingTimer.current = setTimeout(() => {
+        void stopVoiceSpikeAndTranscribe();
+      }, MAX_RECORDING_MS);
+    } catch {
+      setError("No pude iniciar el micrófono.");
+      onCharacterStateChange("idle");
+    }
+  };
+
+  useEffect(() => clearMaxRecordingTimer, [clearMaxRecordingTimer]);
+
   const handleAudit = async () => {
     const code = auditCode.trim();
     if (!code || auditLoading) {
@@ -251,7 +494,19 @@ export function ChatPanel({
             Chat y Guardián
           </h2>
           <p className="text-xs text-slate-500">
-            {voiceLoading ? "Reproduciendo voz..." : "Responde con texto y voz."}
+            {voiceSpikeRecording
+              ? "Grabando voz..."
+              : voiceSpikeTranscribing
+                ? "Transcribiendo voz..."
+                : screenContextCapturing
+                  ? "Mirando portapapeles/pantalla..."
+                  : screenContextReady === "clipboard"
+                    ? "Listo: uso lo que tenés copiado en tu próximo mensaje."
+                    : screenContextReady === "ocr"
+                      ? "Listo: uso lo que leí en pantalla en tu próximo mensaje."
+                      : voiceLoading
+                        ? "Reproduciendo voz..."
+                        : "Responde con texto y voz."}
           </p>
         </div>
         {codeGuardianEnabled ? (
@@ -293,20 +548,60 @@ export function ChatPanel({
 
       {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : null}
 
-      <form onSubmit={handleSubmit} className="mt-3 flex gap-2">
+      <form ref={formRef} onSubmit={handleSubmit} className="mt-3 flex gap-2">
         <input
           value={input}
           onChange={(event) => setInput(event.target.value)}
           placeholder="Escribí un mensaje"
           className="min-w-0 flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm outline-none ring-slate-300 transition focus:ring-2"
         />
+        {voiceSpikeAvailable ? (
+          <button
+            type="button"
+            onClick={() => handleCaptureScreenContext()}
+            disabled={chatLoading || screenContextCapturing}
+            className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-300 ${
+              screenContextReady ? "border-blue-300 bg-blue-50 text-blue-700" : "border-slate-300 bg-white"
+            }`}
+            aria-label="Usar lo copiado o la pantalla como contexto"
+            title="Usar lo copiado o la pantalla como contexto"
+          >
+            {screenContextCapturing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <ScanText className="h-4 w-4" />
+            )}
+          </button>
+        ) : null}
+        {voiceSpikeAvailable ? (
+          <button
+            type="button"
+            onClick={() => void handleVoiceSpike()}
+            disabled={chatLoading || voiceSpikeTranscribing}
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-300"
+            aria-label={voiceSpikeRecording ? "Detener grabación" : "Grabar voz"}
+            title={voiceSpikeRecording ? "Detener grabación" : "Grabar voz"}
+          >
+            {voiceSpikeTranscribing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : voiceSpikeRecording ? (
+              <Square className="h-4 w-4 fill-current" />
+            ) : (
+              <Mic className="h-4 w-4" />
+            )}
+          </button>
+        ) : null}
         <button
           type="submit"
           disabled={chatLoading || !input.trim()}
           className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-blue-600 text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
           aria-label="Enviar"
         >
-          {chatLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+          {chatLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Send className="h-4 w-4" />
+          )}
         </button>
       </form>
 
