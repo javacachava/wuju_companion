@@ -1,0 +1,25 @@
+[package]
+name = "companero-desktop"
+version = "0.1.0"
+description = "Cliente Tauri delgado para El Compañero"
+authors = ["Wuju"]
+edition = "2021"
+rust-version = "1.77.2"
+
+[lib]
+name = "companero_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "companero-desktop"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-fs = "2"
+tauri-plugin-mic-recorder = "2.0.0"
+tauri-plugin-clipboard-manager = "2"
+tauri-plugin-screenshots = "2"

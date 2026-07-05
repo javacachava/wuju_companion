@@ -1,0 +1,13 @@
+{
+  "name": "companero-voice-spike",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Disposable Tauri v2 microphone to Whisper spike for El Compañero.",
+  "scripts": {
+    "dev": "tauri dev",
+    "tauri": "tauri"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.11.4"
+  }
+}

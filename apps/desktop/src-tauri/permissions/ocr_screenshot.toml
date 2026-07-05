@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "ocr-screenshot"
+description = "Permite correr OCR local (tesseract) sobre una captura de pantalla ya guardada en disco. Comando propio de la app, no de un plugin — ver Fase 4 de DESKTOP-MIGRATION-PLAN.md."
+commands.allow = ["ocr_screenshot"]

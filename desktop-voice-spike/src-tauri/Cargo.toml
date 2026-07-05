@@ -1,0 +1,23 @@
+[package]
+name = "companero-voice-spike"
+version = "0.0.0"
+description = "Disposable Tauri v2 voice spike for El Compañero"
+authors = ["Wuju"]
+edition = "2021"
+rust-version = "1.77.2"
+
+[lib]
+name = "companero_voice_spike_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "companero-voice-spike"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-fs = "2"
+tauri-plugin-mic-recorder = "2.0.0"
