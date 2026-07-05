@@ -6,7 +6,7 @@ import {
   CompanionGlobalProvider,
   useCompanionGlobal,
 } from "@/components/companion/CompanionGlobalContext";
-import { CompanionLaunchExperience } from "@/components/companion/CompanionLaunchExperience";
+import { InstallationWindow } from "@/components/companion/InstallationWindow";
 import { Onboarding } from "@/components/companion/Onboarding";
 
 type AppShellProps = {
@@ -26,12 +26,13 @@ function AppShellInner({ children }: AppShellProps) {
   const {
     character,
     closeLauncher,
-    completeSelection,
-    createCharacter,
     isLauncherOpen,
+    login,
     openLauncher,
+    logout,
+    register,
     status,
-    updateCharacter,
+    userEmail,
   } = useCompanionGlobal();
 
   return (
@@ -95,15 +96,10 @@ function AppShellInner({ children }: AppShellProps) {
                   Cargando tu personaje...
                 </p>
               </main>
-            ) : status === "onboarding" || !character ? (
-              <Onboarding onContinue={createCharacter} />
+            ) : status === "auth" || !character ? (
+              <Onboarding onLogin={login} onRegister={register} />
             ) : (
-              <CompanionLaunchExperience
-                character={character}
-                onCharacterChange={updateCharacter}
-                onContinue={completeSelection}
-                isEmbedded
-              />
+              <InstallationWindow userEmail={userEmail} onLogout={logout} />
             )}
           </div>
         </div>

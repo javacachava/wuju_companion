@@ -142,7 +142,7 @@ export default function LandingPage() {
               <p className="mt-5 max-w-xs text-sm leading-6 text-slate-600">
                 Wuju Companion transforma la IA en un compañero de escritorio
                 que te entiende, te ayuda y crece contigo. Hecho para
-                desarrolladores, por desarrolladores.
+                internautas, por internautas.
               </p>
               <div className="mt-5 flex gap-3">
                 {socialLinks.map(({ label, href, Icon }) => (
@@ -218,7 +218,7 @@ export default function LandingPage() {
               <span className="hidden h-5 w-px bg-slate-200 sm:block" />
               <span className="inline-flex items-center gap-1">
                 Hecho con <Heart className="h-4 w-4 fill-red-500 text-red-500" /> para
-                desarrolladores
+                internautas
               </span>
             </div>
           </div>

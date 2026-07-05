@@ -4,13 +4,14 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  Bookmark,
+  BookmarkCheck,
   Bot,
   Briefcase,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   Cpu,
-  Download,
   Flame,
   Github,
   Globe2,
@@ -20,6 +21,7 @@ import {
   Mail,
   MessageCircle,
   PackagePlus,
+  Save,
   Search,
   Shirt,
   ShoppingBag,
@@ -29,6 +31,12 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Toast } from "./Toast";
+import {
+  AuthenticationRequiredError,
+  getSavedMarketplaceCharacters,
+  saveMarketplaceCharacterToProfile,
+  type MarketplaceCharacterPayload,
+} from "@/lib/marketplace/profile";
 
 type FilterId =
   | "all"
@@ -276,7 +284,9 @@ export function MarketplaceClient() {
   const [activeFilter, setActiveFilter] = useState<FilterId>("all");
   const [query, setQuery] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("recent");
-  const [installedIds, setInstalledIds] = useState<ReadonlySet<string>>(() => new Set());
+  const [savedIds, setSavedIds] = useState<ReadonlySet<string>>(() => new Set());
+  const [pendingIds, setPendingIds] = useState<ReadonlySet<string>>(() => new Set());
+  const [authenticated, setAuthenticated] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -286,23 +296,90 @@ export function MarketplaceClient() {
     };
   }, []);
 
+  useEffect(() => {
+    let active = true;
+    void getSavedMarketplaceCharacters()
+      .then((items) => {
+        if (!active) return;
+        setAuthenticated(true);
+        setSavedIds(new Set(items.map((item) => item.marketplaceCharacterId)));
+      })
+      .catch((error) => {
+        if (error instanceof AuthenticationRequiredError) {
+          if (active) setAuthenticated(false);
+          return;
+        }
+        console.error("[marketplace] failed to load saved characters", error);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const showToast = useCallback((message: string) => {
     setToast(message);
     if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(null), 2800);
   }, []);
 
-  const installCharacter = useCallback(
-    (character: CharacterCard) => {
-      setInstalledIds((previous) => {
-        if (previous.has(character.id)) return previous;
+  const saveCharacter = useCallback(
+    async (character: CharacterCard) => {
+      if (!authenticated) {
+        showToast("Inicia sesión en /companion para guardar personajes en tu perfil.");
+        return;
+      }
+
+      if (savedIds.has(character.id) || pendingIds.has(character.id)) {
+        return;
+      }
+
+      setPendingIds((previous) => {
         const next = new Set(previous);
         next.add(character.id);
         return next;
       });
-      showToast(`${character.name} instalado en tu colección.`);
+
+      const payload: MarketplaceCharacterPayload = {
+        id: character.id,
+        name: character.name,
+        category: character.category,
+        categoryId: character.categoryId,
+        image: character.image,
+        tag: character.tag,
+        tagTone: character.tagTone,
+        background: character.background,
+        isNew: character.isNew,
+        isPopular: character.isPopular,
+      };
+
+      try {
+        await saveMarketplaceCharacterToProfile({
+          marketplaceCharacter: payload,
+        });
+        setSavedIds((previous) => {
+          const next = new Set(previous);
+          next.add(character.id);
+          return next;
+        });
+        showToast(`${character.name} guardado en tu perfil.`);
+      } catch (error) {
+        if (error instanceof AuthenticationRequiredError) {
+          setAuthenticated(false);
+          showToast("Tu sesión expiró. Inicia sesión otra vez en /companion.");
+        } else {
+          console.error("[marketplace] failed to save character", error);
+          showToast("No se pudo guardar el personaje. Intenta de nuevo.");
+        }
+      } finally {
+        setPendingIds((previous) => {
+          const next = new Set(previous);
+          next.delete(character.id);
+          return next;
+        });
+      }
     },
-    [showToast],
+    [authenticated, pendingIds, savedIds, showToast],
   );
 
   const filteredCharacters = useMemo(() => {
@@ -366,33 +443,40 @@ export function MarketplaceClient() {
             </nav>
 
             <div className="mt-10 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-              <Download className="h-8 w-8 text-[#07172d]" />
-              <h3 className="mt-4 text-base font-bold text-slate-950">Instala más personajes</h3>
+              <Save className="h-8 w-8 text-[#07172d]" />
+              <h3 className="mt-4 text-base font-bold text-slate-950">Guarda personajes en tu perfil</h3>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                Explora nuevos estilos y agrega compañeros a tu escritorio.
+                Los personajes guardados quedan asociados a tu compañero y se sincronizan en tu perfil.
               </p>
-              <button
-                type="button"
-                onClick={() => showToast("Colección lista para explorar.")}
-                className="mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-md bg-[#06162b] px-4 text-sm font-semibold text-white transition hover:bg-[#0b2342]"
-              >
-                Explorar más
-              </button>
+              {authenticated ? (
+                <Link
+                  href="/companion"
+                  className="mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-md bg-[#06162b] px-4 text-sm font-semibold text-white transition hover:bg-[#0b2342]"
+                >
+                  Ver mi perfil
+                </Link>
+              ) : (
+                <Link
+                  href="/companion"
+                  className="mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-md bg-[#06162b] px-4 text-sm font-semibold text-white transition hover:bg-[#0b2342]"
+                >
+                  Crear mi perfil
+                </Link>
+              )}
             </div>
 
-            <button
-              type="button"
-              onClick={() => showToast("Guía rápida: elige un personaje y presiona Instalar.")}
+            <Link
+              href="/companion"
               className="mt-5 flex w-full items-center justify-between rounded-lg border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:border-slate-300"
             >
               <span>
-                <span className="block text-sm font-bold text-slate-950">¿Cómo instalar?</span>
+                <span className="block text-sm font-bold text-slate-950">¿Cómo guardar?</span>
                 <span className="mt-2 block text-sm leading-6 text-slate-600">
-                  Descubre cómo usar tus compañeros.
+                  Configura tu compañero y usa los personajes guardados desde ahí.
                 </span>
               </span>
               <ChevronRight className="h-5 w-5 shrink-0 text-slate-500" />
-            </button>
+            </Link>
           </div>
         </aside>
 
@@ -461,7 +545,8 @@ export function MarketplaceClient() {
           {filteredCharacters.length > 0 ? (
             <div className="mt-7 grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6">
               {filteredCharacters.map((character) => {
-                const installed = installedIds.has(character.id);
+                const saved = savedIds.has(character.id);
+                const pending = pendingIds.has(character.id);
                 return (
                   <article
                     key={character.id}
@@ -491,16 +576,29 @@ export function MarketplaceClient() {
 
                       <button
                         type="button"
-                        onClick={() => installCharacter(character)}
-                        disabled={installed}
+                        onClick={() => void saveCharacter(character)}
+                        disabled={saved || pending}
+                        aria-label={
+                          saved
+                            ? `${character.name} guardado en tu perfil`
+                            : `Guardar ${character.name} en tu perfil`
+                        }
                         className={`mt-2.5 inline-flex h-9 w-full items-center justify-center gap-2 rounded-md border px-3 text-sm font-bold transition ${
-                          installed
+                          saved
                             ? "border-emerald-100 bg-emerald-50 text-emerald-700"
-                            : "border-slate-200 bg-white text-slate-950 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                            : "border-slate-200 bg-white text-slate-950 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 disabled:cursor-progress disabled:opacity-70"
                         }`}
                       >
-                        <Download className="h-4 w-4" />
-                        {installed ? "Instalado" : "Instalar"}
+                        {saved ? (
+                          <BookmarkCheck className="h-4 w-4" />
+                        ) : (
+                          <Bookmark className="h-4 w-4" />
+                        )}
+                        {saved
+                          ? "Guardado en perfil"
+                          : pending
+                            ? "Guardando..."
+                            : "Guardar en perfil"}
                       </button>
                     </div>
                   </article>
@@ -644,7 +742,7 @@ function MarketplaceFooter() {
             <span className="hidden h-5 w-px bg-slate-200 sm:block" />
             <span className="inline-flex items-center gap-1">
               Hecho con <Heart className="h-4 w-4 fill-red-500 text-red-500" /> para
-              desarrolladores
+              internautas
             </span>
           </div>
         </div>

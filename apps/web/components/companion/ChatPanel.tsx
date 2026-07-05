@@ -132,7 +132,6 @@ export function ChatPanel({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          characterId: character.id,
           message,
           activeSkill: "chat-base",
         }),
@@ -222,7 +221,6 @@ export function ChatPanel({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          characterId: character.id,
           code,
           language: auditLanguage,
         }),

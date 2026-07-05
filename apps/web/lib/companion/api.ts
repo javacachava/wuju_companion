@@ -24,6 +24,16 @@ type ApiCharacter = {
 };
 
 type ApiInventory = Record<PartCategory, CharacterPart[]>;
+type ApiSession =
+  | {
+      authenticated: true;
+      user: {
+        id: string;
+        email: string;
+      };
+      character: ApiCharacter;
+    }
+  | { authenticated: false };
 
 function emptyInventory(): CharacterInventory {
   return {
@@ -114,23 +124,15 @@ function toCharacterProfile(
   };
 }
 
-export async function getCharacter(userName: string): Promise<CharacterProfile> {
-  const character = await readJson<ApiCharacter>(
-    `/api/character?userName=${encodeURIComponent(userName)}`,
-  );
-  const inventory = await getInventory(character.id);
+export async function getCharacter(): Promise<CharacterProfile> {
+  const character = await readJson<ApiCharacter>("/api/character");
+  const inventory = await getInventory();
 
   return toCharacterProfile(character, inventory);
 }
 
-export async function createCharacter(userName: string): Promise<CharacterProfile> {
-  return getCharacter(userName.trim().toLowerCase());
-}
-
-export async function getInventory(characterId: string): Promise<CharacterInventory> {
-  const inventory = await readJson<ApiInventory>(
-    `/api/inventory?characterId=${encodeURIComponent(characterId)}`,
-  );
+export async function getInventory(): Promise<CharacterInventory> {
+  const inventory = await readJson<ApiInventory>(`/api/inventory`);
 
   return {
     ...emptyInventory(),
@@ -149,12 +151,11 @@ export async function equipPart(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      characterId: character.id,
       category,
       partId,
     }),
   });
-  const inventory = await getInventory(nextCharacter.id);
+  const inventory = await getInventory();
 
   return {
     ...toCharacterProfile(nextCharacter, inventory),
@@ -166,4 +167,30 @@ export async function equipPart(
 
 export async function saveCharacter(character: CharacterProfile): Promise<void> {
   saveStoredAssistant(character.id, character.assistant);
+}
+
+export async function getAuthSession(): Promise<ApiSession> {
+  return readJson<ApiSession>("/api/auth/session");
+}
+
+export async function registerWithEmail(email: string, password: string): Promise<void> {
+  await readJson("/api/auth/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+}
+
+export async function loginWithEmail(email: string, password: string): Promise<void> {
+  await readJson("/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+}
+
+export async function logoutSession(): Promise<void> {
+  await readJson("/api/auth/logout", {
+    method: "POST",
+  });
 }

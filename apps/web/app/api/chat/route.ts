@@ -5,11 +5,12 @@ import type { Message } from "@prisma/client";
 import { chatWithCompanion } from "@/lib/ai";
 import { describeAiError } from "@/lib/ai-errors";
 import { db } from "@/lib/db";
+import { getSessionFromCookie } from "@/lib/auth/session";
+import { ensureCharacterForUser } from "@/lib/companion/server";
 import { triggerConversationLog } from "@/lib/n8n";
 
 const ChatRequestSchema = z
   .object({
-    characterId: z.string().min(1),
     message: z.string().min(1),
     activeSkill: z.enum(["chat-base", "code-guardian"]),
   })
@@ -60,6 +61,13 @@ export async function POST(request: Request) {
   try {
     const body = ChatRequestSchema.parse(await request.json());
 
+    const session = await getSessionFromCookie();
+    if (!session) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const characterId = await ensureCharacterForUser(session.user.id, session.user.email);
+
     if (body.activeSkill === "code-guardian") {
       return Response.json(
         { error: "Usa /api/audit para el skill code-guardian" },
@@ -68,7 +76,7 @@ export async function POST(request: Request) {
     }
 
     const character = await db.character.findUnique({
-      where: { id: body.characterId },
+      where: { id: characterId },
       include: {
         messages: {
           orderBy: { createdAt: "desc" },
@@ -98,7 +106,7 @@ export async function POST(request: Request) {
         await db.$transaction([
           db.message.create({
             data: {
-              characterId: body.characterId,
+              characterId,
               role: "user",
               content: body.message,
               skillUsed: body.activeSkill,
@@ -106,7 +114,7 @@ export async function POST(request: Request) {
           }),
           db.message.create({
             data: {
-              characterId: body.characterId,
+              characterId,
               role: "assistant",
               content: assistantMessage,
               skillUsed: body.activeSkill,
@@ -115,7 +123,7 @@ export async function POST(request: Request) {
         ]);
 
         void triggerConversationLog({
-          characterId: body.characterId,
+          characterId,
           userMessage: body.message,
           assistantMessage,
           skillUsed: body.activeSkill,

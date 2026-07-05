@@ -12,6 +12,7 @@ datasource db {
 model Character {
   id        String   @id @default(cuid())
   userName  String   @unique
+  userId    String?  @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -26,9 +27,55 @@ model Character {
 
   coins Int @default(1000) // saldo de monedas de demo (moneda in-app, no dinero real)
 
-  messages  Message[]
-  inventory InventoryItem[]
-  skills    ActiveSkill[]
+  messages                 Message[]
+  inventory                InventoryItem[]
+  skills                   ActiveSkill[]
+  savedMarketplaceCharacters SavedMarketplaceCharacter[]
+  user                     User?                      @relation(fields: [userId], references: [id])
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  passwordHash String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  character Character?
+  sessions  UserSession[]
+}
+
+model UserSession {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model SavedMarketplaceCharacter {
+  id                      String   @id @default(cuid())
+  characterId             String
+  marketplaceCharacterId  String // id lógico del personaje del marketplace (ej. "policia")
+  name                    String
+  category                String
+  categoryId              String
+  image                   String
+  tag                     String
+  tagTone                 String
+  background              String
+  isNew                   Boolean  @default(false)
+  isPopular               Boolean  @default(false)
+  savedAt                 DateTime @default(now())
+
+  character Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@unique([characterId, marketplaceCharacterId])
+  @@index([characterId])
 }
 
 model Part {

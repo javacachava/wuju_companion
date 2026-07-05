@@ -42,18 +42,16 @@ export async function getMarketplaceParts(characterId?: string): Promise<Marketp
   return readJson<MarketplacePart[]>(`/api/marketplace/parts${query}`);
 }
 
-export async function getWallet(characterId: string): Promise<number> {
-  const { coins } = await readJson<{ coins: number }>(
-    `/api/marketplace/wallet?characterId=${encodeURIComponent(characterId)}`,
-  );
+export async function getWallet(): Promise<number> {
+  const { coins } = await readJson<{ coins: number }>(`/api/marketplace/wallet`);
   return coins;
 }
 
-export async function acquirePart(characterId: string, partId: string): Promise<AcquireResult> {
+export async function acquirePart(partId: string): Promise<AcquireResult> {
   const response = await fetch(`/api/marketplace/acquire`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ characterId, partId }),
+    body: JSON.stringify({ partId }),
   });
 
   if (response.status === 402) {

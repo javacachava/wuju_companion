@@ -32,7 +32,7 @@ export function CompanionApp({ character, onCharacterChange }: CompanionAppProps
 
     const loadInventory = async () => {
       try {
-        const nextInventory = await getInventory(character.id);
+        const nextInventory = await getInventory();
         if (active) {
           setInventory(nextInventory);
         }
@@ -55,7 +55,7 @@ export function CompanionApp({ character, onCharacterChange }: CompanionAppProps
     async (category: PartCategory, partId: string) => {
       const nextCharacter = await equipCharacterPart(character, category, partId);
       onCharacterChange(nextCharacter);
-      setInventory(await getInventory(nextCharacter.id));
+      setInventory(await getInventory());
     },
     [character, onCharacterChange],
   );
@@ -66,7 +66,6 @@ export function CompanionApp({ character, onCharacterChange }: CompanionAppProps
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          characterId: character.id,
           skillKey: "code-guardian",
           enabled,
         }),
@@ -78,7 +77,7 @@ export function CompanionApp({ character, onCharacterChange }: CompanionAppProps
 
       setCodeGuardianEnabled(enabled);
     },
-    [character.id],
+    [],
   );
 
   const contextValue = useMemo(
