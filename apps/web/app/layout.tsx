@@ -13,21 +13,21 @@ function getMetadataBase() {
 
 export const metadata: Metadata = {
   metadataBase: getMetadataBase(),
-  title: "El Compañero — Tu asistente libre, con cara y voz",
+  title: "Wuju Companion - Tu asistente de IA",
   description:
-    "Un compañero libre. La cara y voz que vos elijas. Para el trabajo que sea.",
+    "Wuju Companion da vida a la IA en tu escritorio. Te ayuda a programar y crece contigo.",
   openGraph: {
-    title: "El Compañero — Tu asistente libre, con cara y voz",
+    title: "Wuju Companion - Tu asistente de IA",
     description:
-      "Un compañero libre. La cara y voz que vos elijas. Para el trabajo que sea.",
-    images: ["/parts/body.png"],
+      "Wuju Companion da vida a la IA en tu escritorio. Te ayuda a programar y crece contigo.",
+    images: ["/brand/hero-inicio.png"],
   },
   twitter: {
     card: "summary_large_image",
-    title: "El Compañero — Tu asistente libre, con cara y voz",
+    title: "Wuju Companion - Tu asistente de IA",
     description:
-      "Un compañero libre. La cara y voz que vos elijas. Para el trabajo que sea.",
-    images: ["/parts/body.png"],
+      "Wuju Companion da vida a la IA en tu escritorio. Te ayuda a programar y crece contigo.",
+    images: ["/brand/hero-inicio.png"],
   },
 };
 

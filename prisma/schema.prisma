@@ -59,10 +59,34 @@ model Character {
 
   coins Int @default(1000) // saldo de monedas de demo (moneda in-app, no dinero real)
 
-  messages  Message[]
-  inventory InventoryItem[]
-  skills    ActiveSkill[]
-  memories  MemoryEntry[]
+  messages                  Message[]
+  inventory                 InventoryItem[]
+  skills                    ActiveSkill[]
+  memories                  MemoryEntry[]
+  savedMarketplaceCharacters SavedMarketplaceCharacter[]
+}
+
+// Traído de la rama de rebrand (main), adaptado a auth vieja: se liga a
+// characterId, no a un userId 1:1 (ese modelo de auth se rechazó explícitamente).
+model SavedMarketplaceCharacter {
+  id                     String   @id @default(cuid())
+  characterId            String
+  marketplaceCharacterId String // id lógico del personaje del marketplace (ej. "policia")
+  name                   String
+  category               String
+  categoryId             String
+  image                  String
+  tag                    String
+  tagTone                String
+  background             String
+  isNew                  Boolean  @default(false)
+  isPopular              Boolean  @default(false)
+  savedAt                DateTime @default(now())
+
+  character Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@unique([characterId, marketplaceCharacterId])
+  @@index([characterId])
 }
 
 model Part {

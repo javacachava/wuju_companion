@@ -1,13 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { LogOut, ShoppingCart, UserRound } from "lucide-react";
-import { useSession } from "@/components/auth/SessionContext";
+import { usePathname, useRouter } from "next/navigation";
 import { CompanionGlobalProvider, useCompanionGlobal } from "@/components/companion/CompanionGlobalContext";
-import { CompanionLaunchExperience } from "@/components/companion/CompanionLaunchExperience";
-import { Onboarding } from "@/components/companion/Onboarding";
-import { useCart } from "@/components/marketplace/CartContext";
 
 type AppShellProps = {
   children: React.ReactNode;
@@ -23,138 +18,50 @@ export function AppShell({ children }: AppShellProps) {
 
 function AppShellInner({ children }: AppShellProps) {
   const pathname = usePathname();
-  const {
-    character,
-    closeLauncher,
-    completeSelection,
-    createCharacter,
-    isLauncherOpen,
-    openLauncher,
-    status,
-    updateCharacter,
-  } = useCompanionGlobal();
+  const router = useRouter();
 
   return (
     <>
-      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur">
-        <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-4">
-          <nav className="flex items-center gap-2 text-sm">
+      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur">
+        <div className="mx-auto flex h-20 w-full max-w-[92rem] items-center justify-between px-5 sm:px-8">
+          <Link href="/" className="inline-flex items-center" aria-label="Wuju Companion">
+            {/* eslint-disable-next-line @next/next/no-img-element -- logo provisto por el equipo */}
+            <img
+              src="/brand/logo-wuju.png"
+              alt="Wuju Companion"
+              className="h-14 w-auto object-contain"
+            />
+          </Link>
+
+          <nav className="hidden items-center gap-12 text-sm font-semibold md:flex">
             <NavLink href="/" active={pathname === "/"}>
               Inicio
-            </NavLink>
-            <NavLink href="/companion" active={pathname.startsWith("/companion")}>
-              Companion
             </NavLink>
             <NavLink href="/marketplace" active={pathname.startsWith("/marketplace")}>
               Marketplace
             </NavLink>
+            <NavLink href="/#creadores" active={false}>
+              Creadores
+            </NavLink>
+            <NavLink href="/#funcionamiento" active={false}>
+              Funcionamiento
+            </NavLink>
           </nav>
 
-          <div className="flex items-center gap-2">
-            <CartButton />
-            <SessionControls />
-            <button
-              type="button"
-              onClick={openLauncher}
-              className="rounded-md bg-blue-700 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-blue-800"
-            >
-              Caja/Mascota
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => router.push("/companion")}
+            className="rounded-md bg-[#06162b] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0b2342]"
+          >
+            Comenzar
+          </button>
         </div>
       </header>
 
       {children}
 
-      <FloatingPet onOpenLauncher={openLauncher} />
-
-      {isLauncherOpen ? (
-        <div className="fixed inset-0 z-50 bg-slate-950/55 p-3 sm:p-6">
-          <div className="absolute right-5 top-5">
-            <button
-              type="button"
-              onClick={closeLauncher}
-              className="rounded-full border border-slate-200 bg-white px-3 py-1 text-sm text-slate-700"
-            >
-              Cerrar
-            </button>
-          </div>
-
-          <div className="h-full overflow-auto">
-            {status === "checking" ? (
-              <main className="mx-auto flex min-h-full max-w-4xl items-center justify-center">
-                <p className="rounded-lg bg-white px-4 py-3 text-sm text-slate-700">
-                  Cargando tu personaje...
-                </p>
-              </main>
-            ) : status === "onboarding" || !character ? (
-              <Onboarding onContinue={createCharacter} />
-            ) : (
-              <CompanionLaunchExperience
-                character={character}
-                onCharacterChange={updateCharacter}
-                onContinue={completeSelection}
-                isEmbedded
-              />
-            )}
-          </div>
-        </div>
-      ) : null}
+      <FloatingPet onOpenLauncher={() => router.push("/companion")} />
     </>
-  );
-}
-
-function CartButton() {
-  const { items } = useCart();
-
-  return (
-    <Link
-      href="/marketplace?cart=open"
-      className="relative rounded-md p-2 text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
-      aria-label={`Carrito (${items.length})`}
-    >
-      <ShoppingCart className="h-5 w-5" />
-      {items.length > 0 ? (
-        <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] font-bold text-white">
-          {items.length}
-        </span>
-      ) : null}
-    </Link>
-  );
-}
-
-function SessionControls() {
-  const { user, loading, logout } = useSession();
-
-  if (loading) return null;
-
-  if (!user) {
-    return (
-      <Link
-        href="/login"
-        className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-1.5 text-sm text-slate-700 transition hover:bg-slate-50"
-      >
-        <UserRound className="h-4 w-4" />
-        Ingresar
-      </Link>
-    );
-  }
-
-  return (
-    <div className="flex items-center gap-1">
-      <span className="hidden max-w-28 truncate text-sm font-medium text-slate-700 sm:block" title={user.email}>
-        {user.name}
-      </span>
-      <button
-        type="button"
-        onClick={() => void logout()}
-        className="rounded-md p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
-        aria-label="Cerrar sesión"
-        title="Cerrar sesión"
-      >
-        <LogOut className="h-4 w-4" />
-      </button>
-    </div>
   );
 }
 
@@ -168,10 +75,10 @@ function NavLink({ href, active, children }: NavLinkProps) {
   return (
     <Link
       href={href}
-      className={`rounded-md px-3 py-1.5 transition ${
+      className={`relative px-1 py-2 transition after:absolute after:-bottom-2 after:left-0 after:h-0.5 after:rounded-full after:transition-all ${
         active
-          ? "bg-blue-50 text-blue-700"
-          : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+          ? "text-slate-950 after:w-9 after:bg-blue-600"
+          : "text-slate-900 after:w-0 after:bg-blue-600 hover:text-blue-700 hover:after:w-9"
       }`}
     >
       {children}

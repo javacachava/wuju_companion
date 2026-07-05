@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { InventoryItem } from "@prisma/client";
 
 import { db } from "@/lib/db";
 
@@ -29,7 +30,7 @@ export async function GET(request: Request) {
       return Response.json({ error: "Character not found" }, { status: 404 });
     }
 
-    const ownedItems = await db.inventoryItem.findMany({
+    const ownedItems: Array<Pick<InventoryItem, "partId">> = await db.inventoryItem.findMany({
       where: { characterId },
       select: { partId: true },
     });
