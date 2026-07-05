@@ -12,7 +12,7 @@ El MVP ya está implementado como monorepo Next.js en `apps/web/`, con Prisma en
 
 El MVP tiene un solo pack completo — **desarrollo** — con dos capacidades: **Guardián de código** (audit de vulnerabilidades vía LLM) y chat conversacional con voz.
 
-## Stack (planeado)
+## Stack actual
 
 - **Framework:** Next.js 15 (App Router) + TypeScript estricto
 - **Estilo:** Tailwind CSS v4 + shadcn/ui + Framer Motion
@@ -37,6 +37,38 @@ pnpm typecheck
 ```
 
 Correr `pnpm lint` y `pnpm typecheck` antes de todo PR.
+
+Si el entorno usa Supabase, no levantes PostgreSQL local: poné `DATABASE_URL` apuntando al **Session Pooler IPv4** de Supabase y corré las migraciones contra esa DB.
+
+## Supabase + DataMCP para Claude
+
+La base real del MVP es PostgreSQL. En el equipo actual está en Supabase y Prisma entra solo por `DATABASE_URL`.
+
+- Usar el pooler de Supabase, no SQLite ni `prisma/dev.db`.
+- Formato esperado:
+  ```env
+  DATABASE_URL="postgresql://postgres.<ref>:<password-url-encoded>@aws-1-<region>.pooler.supabase.com:5432/postgres?schema=public"
+  ```
+- `DATAMCP_MCP_URL` y `DATAMCP_API_KEY` son solo para herramientas de IA. La app no los usa para atender requests.
+- Nunca pegar claves reales en docs, commits, issues o prompts.
+- Antes de cambiar schema/data, revisar `docs/DATAMCP.md`, `docs/DEV-E.md` y `prisma/schema.prisma`.
+
+Para Claude Desktop/Claude Code, configurar DataMCP como MCP remoto usando el URL scoped de la conexión y el header bearer:
+
+```json
+{
+  "mcpServers": {
+    "datamcp": {
+      "url": "https://api.datamcp.app/api/mcp/conn_xxx",
+      "headers": {
+        "Authorization": "Bearer sk_live_..."
+      }
+    }
+  }
+}
+```
+
+Después de guardar la configuración MCP, reiniciar Claude para que cargue las herramientas. Si el cliente pide autorización o confirmación en navegador, completarla antes de intentar listar tablas.
 
 ## Arquitectura del monorepo (estructura objetivo)
 
@@ -67,9 +99,11 @@ infra/n8n/                    # workflows exportados
 **`docs/CONTRATOS.md` es la fuente de verdad** de modelo de datos, endpoints y flujos. Si el código no coincide con ese documento, se arregla el código, no al revés. Cambios de contrato se hacen primero en el documento.
 
 ### Modelo de datos (Prisma) — 5 modelos
+
 `Character` (personaje del usuario: partes puestas, personalidad, voiceId) → `InventoryItem` (partes desbloqueadas) → `Part` (catálogo de wardrobe, `category`: hair/eyes/mouth/accessory/clothing) · `Message` (historial de chat, `skillUsed`) · `ActiveSkill` (qué capacidades tiene prendidas el personaje).
 
 ### Endpoints clave y sus flujos
+
 - `POST /api/chat` — streaming de conversación (Vercel AI SDK), guarda `Message` al terminar el stream, dispara webhook `conversation-log` a n8n.
 - `POST /api/audit` — Guardián de código: devuelve `findings[]` estructurados + `characterVoicedSummary`. Si hay algún finding `critical`, dispara webhook `audit-critical` a n8n.
 - `POST /api/tts` — texto a voz vía ElevenLabs, cacheado en memoria por hash de `text + voiceId`.
@@ -78,6 +112,7 @@ infra/n8n/                    # workflows exportados
 Detalle completo de request/response en `docs/CONTRATOS.md`.
 
 ### Ownership por área (para saber a qué doc mirar)
+
 - Dev A — landing, copy, video, deck → `docs/DEV-A.md`
 - Dev B — assets IA, marketplace, video final → `docs/DEV-B.md`
 - Dev C — compañero UI, mascota, wardrobe, chat → `docs/DEV-C.md`
