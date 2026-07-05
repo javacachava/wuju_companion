@@ -7,8 +7,10 @@ import type {
   CharacterProfile,
   PartCategory,
 } from "@/lib/companion/types";
+import { DEFAULT_AVATAR } from "@/lib/companion/avatars";
 import { AssistantData } from "./AssistantData";
 import { ChatPanel } from "./ChatPanel";
+import { ConfigPanel } from "./ConfigPanel";
 import { CharacterProvider, type CharacterState } from "./CharacterContext";
 import { CharacterInfo } from "./CharacterInfo";
 import { CharacterStage } from "./CharacterStage";
@@ -30,9 +32,10 @@ export function CompanionApp({ character, onCharacterChange }: CompanionAppProps
   // vive detrás de "Personalizar", no es la pantalla por defecto.
   const [view, setView] = useState<"chat" | "customize">("chat");
   const [permissionsOpen, setPermissionsOpen] = useState(false);
+  const [configOpen, setConfigOpen] = useState(false);
   const [partsSearch, setPartsSearch] = useState("");
 
-  const avatarThumb = character.avatar?.image ?? "/parts/body.png";
+  const activeAvatar = character.avatar ?? DEFAULT_AVATAR;
 
   useEffect(() => {
     let active = true;
@@ -113,52 +116,113 @@ export function CompanionApp({ character, onCharacterChange }: CompanionAppProps
   if (view === "chat") {
     return (
       <CharacterProvider value={contextValue}>
-        <main className="mx-auto flex w-full max-w-3xl flex-col px-3 py-3 sm:px-4">
-          {/* Barra del compañero */}
-          <div className="flex items-center justify-between gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
-            <div className="flex min-w-0 items-center gap-2.5">
-              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-50">
+        <main className="mx-auto flex w-full max-w-6xl gap-4 px-3 py-3 sm:px-4">
+          {/* Personaje grande a la izquierda (desktop) */}
+          <aside className="hidden w-72 shrink-0 flex-col lg:flex">
+            <div className="flex flex-1 flex-col rounded-2xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 p-4 shadow-sm">
+              <div className="flex flex-1 items-center justify-center rounded-xl bg-white/60 p-2">
                 {/* eslint-disable-next-line @next/next/no-img-element -- avatar local */}
-                <img src={avatarThumb} alt="" className="h-9 w-9 object-contain" draggable={false} />
-              </span>
-              <div className="min-w-0">
+                <img
+                  src={activeAvatar.image}
+                  alt={activeAvatar.name}
+                  className="max-h-[46vh] w-full object-contain"
+                  draggable={false}
+                />
+              </div>
+              <div className="mt-3">
+                <p className="text-lg font-bold text-slate-900">
+                  {character.assistant?.name ?? character.userName}
+                </p>
+                <p className="text-sm text-slate-500">
+                  {character.assistant?.role ?? activeAvatar.name}
+                </p>
+                <span className="mt-2 inline-block rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+                  {characterState}
+                </span>
+              </div>
+              <div className="mt-4 space-y-2">
+                <button
+                  type="button"
+                  onClick={() => setView("customize")}
+                  className="w-full rounded-lg bg-[#06162b] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[#0b2342]"
+                >
+                  Personalizar
+                </button>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setConfigOpen(true)}
+                    className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+                  >
+                    Ajustes
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPermissionsOpen(true)}
+                    className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+                  >
+                    Permisos
+                  </button>
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          {/* Chat como experiencia principal (tipo ChatGPT/Claude) */}
+          <div className="flex min-w-0 flex-1 flex-col">
+            {/* Barra compacta (mobile: incluye avatar + acciones) */}
+            <div className="flex items-center justify-between gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm lg:hidden">
+              <div className="flex min-w-0 items-center gap-2">
+                <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-50">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- avatar local */}
+                  <img
+                    src={activeAvatar.image}
+                    alt=""
+                    className="h-8 w-8 object-contain"
+                    draggable={false}
+                  />
+                </span>
                 <p className="truncate text-sm font-semibold text-slate-900">
                   {character.assistant?.name ?? character.userName}
                 </p>
-                <p className="truncate text-xs text-slate-500">
-                  {character.avatar?.name ?? character.assistant?.role ?? "Tu compañero"}
-                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setView("customize")}
+                  className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600"
+                >
+                  Personalizar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfigOpen(true)}
+                  className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600"
+                >
+                  Ajustes
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPermissionsOpen(true)}
+                  className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600"
+                >
+                  Permisos
+                </button>
               </div>
             </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setView("customize")}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
-              >
-                Personalizar
-              </button>
-              <button
-                type="button"
-                onClick={() => setPermissionsOpen(true)}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
-              >
-                Permisos
-              </button>
-            </div>
-          </div>
 
-          {/* Chat como experiencia principal (tipo ChatGPT/Claude) */}
-          <div className="mt-3">
-            <ChatPanel
-              character={character}
-              codeGuardianEnabled={codeGuardianEnabled}
-              onCharacterStateChange={setCharacterState}
-              variant="full"
-            />
+            <div className="mt-3 lg:mt-0">
+              <ChatPanel
+                character={character}
+                codeGuardianEnabled={codeGuardianEnabled}
+                onCharacterStateChange={setCharacterState}
+                variant="full"
+              />
+            </div>
           </div>
         </main>
         <PermissionsPanel open={permissionsOpen} onClose={() => setPermissionsOpen(false)} />
+        <ConfigPanel open={configOpen} onClose={() => setConfigOpen(false)} />
       </CharacterProvider>
     );
   }
@@ -192,6 +256,13 @@ export function CompanionApp({ character, onCharacterChange }: CompanionAppProps
               />
               <button
                 type="button"
+                onClick={() => setConfigOpen(true)}
+                className="shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+              >
+                Ajustes
+              </button>
+              <button
+                type="button"
                 onClick={() => setPermissionsOpen(true)}
                 className="shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
               >
@@ -221,6 +292,7 @@ export function CompanionApp({ character, onCharacterChange }: CompanionAppProps
         </section>
       </main>
       <PermissionsPanel open={permissionsOpen} onClose={() => setPermissionsOpen(false)} />
+      <ConfigPanel open={configOpen} onClose={() => setConfigOpen(false)} />
     </CharacterProvider>
   );
 }

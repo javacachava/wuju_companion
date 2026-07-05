@@ -20,3 +20,6 @@ export const AVATAR_CATALOG: AvatarOption[] = [
   { id: "camisa", name: "Camisa", image: "/marketplace/characters/camisa.png" },
   { id: "sueter", name: "Suéter", image: "/marketplace/characters/sueter.png" },
 ];
+
+// Personaje por defecto cuando el usuario todavía no eligió uno.
+export const DEFAULT_AVATAR: AvatarOption = AVATAR_CATALOG[0]!;

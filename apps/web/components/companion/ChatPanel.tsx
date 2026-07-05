@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, Mic, ScanText, Send, ShieldCheck, Square, Volume2, X } from "lucide-react";
+import { Github, Loader2, Mic, ScanText, Send, ShieldCheck, Square, Volume2, X } from "lucide-react";
 import type { CharacterProfile } from "@/lib/companion/types";
 import { captureScreenContext, formatContextForPrompt, type ScreenContext } from "@/lib/context-builder";
 import { isPermissionEnabled } from "@/lib/permissions";
@@ -120,6 +120,8 @@ export function ChatPanel({
   const [auditLanguage, setAuditLanguage] = useState("javascript");
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditReport, setAuditReport] = useState<AuditReportData | null>(null);
+  const [repoAuditOpen, setRepoAuditOpen] = useState(false);
+  const [repoUrl, setRepoUrl] = useState("");
   const [voiceSpikeAvailable, setVoiceSpikeAvailable] = useState(false);
   const [voiceSpikeRecording, setVoiceSpikeRecording] = useState(false);
   const [voiceSpikeTranscribing, setVoiceSpikeTranscribing] = useState(false);
@@ -491,6 +493,49 @@ export function ChatPanel({
     }
   };
 
+  // Modo Byte Warden: audita un repo público de GitHub.
+  const handleAuditRepo = async () => {
+    const url = repoUrl.trim();
+    if (!url || auditLoading) {
+      return;
+    }
+
+    setAuditLoading(true);
+    setError(null);
+    setAuditReport(null);
+    onCharacterStateChange("thinking");
+
+    try {
+      const response = await fetch("/api/audit-repo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ characterId: character.id, repoUrl: url }),
+      });
+
+      const data = (await response.json()) as AuditReportData | { error?: string; message?: string };
+      if (!response.ok || !("findings" in data)) {
+        const code = "error" in data ? data.error : undefined;
+        setError(
+          code === "repo_not_found"
+            ? "No encontré ese repo (¿es público?)."
+            : code === "no_code_files"
+              ? "No hay archivos de código para auditar en ese repo."
+              : "No pude auditar ese repo ahora. Probá de nuevo.",
+        );
+        onCharacterStateChange("idle");
+        return;
+      }
+
+      setAuditReport(data);
+      await speak(data.characterVoicedSummary);
+    } catch {
+      setError("No pude leer ese repo ahora. Probá de nuevo.");
+      onCharacterStateChange("idle");
+    } finally {
+      setAuditLoading(false);
+    }
+  };
+
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -515,14 +560,24 @@ export function ChatPanel({
           </p>
         </div>
         {codeGuardianEnabled ? (
-          <button
-            type="button"
-            onClick={() => setAuditOpen(true)}
-            className="inline-flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-100"
-          >
-            <ShieldCheck className="h-4 w-4" />
-            Auditar código
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setAuditOpen(true)}
+              className="inline-flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-100"
+            >
+              <ShieldCheck className="h-4 w-4" />
+              Auditar código
+            </button>
+            <button
+              type="button"
+              onClick={() => setRepoAuditOpen(true)}
+              className="inline-flex items-center gap-2 rounded-md border border-slate-800 bg-[#06162b] px-3 py-2 text-sm font-medium text-white transition hover:bg-[#0b2342]"
+            >
+              <Github className="h-4 w-4" />
+              Auditar repo
+            </button>
+          </div>
         ) : null}
       </div>
 
@@ -682,6 +737,66 @@ export function ChatPanel({
             >
               {auditLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               {auditLoading ? "Auditando..." : "Auditar"}
+            </button>
+
+            {auditReport ? (
+              <div className="mt-4">
+                <AuditReport report={auditReport} />
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
+      {repoAuditOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Auditar repositorio"
+          onClick={() => setRepoAuditOpen(false)}
+        >
+          <div
+            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-4 shadow-xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h3 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
+                  <Github className="h-5 w-5" />
+                  Modo Byte Warden
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Pegá un repo público de GitHub y busco vulnerabilidades en su código.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRepoAuditOpen(false)}
+                className="rounded-full p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+                aria-label="Cerrar"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="mt-4">
+              <input
+                value={repoUrl}
+                onChange={(event) => setRepoUrl(event.target.value)}
+                placeholder="https://github.com/usuario/repo"
+                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none ring-slate-300 transition focus:ring-2"
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={() => void handleAuditRepo()}
+              disabled={auditLoading || !repoUrl.trim()}
+              className="mt-4 inline-flex items-center gap-2 rounded-md bg-[#06162b] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#0b2342] disabled:cursor-not-allowed disabled:bg-slate-300"
+            >
+              {auditLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+              {auditLoading ? "Leyendo el repo..." : "Auditar repo"}
             </button>
 
             {auditReport ? (
