@@ -34,8 +34,27 @@ const CODE_EXTENSIONS = new Set([
   "sql",
 ]);
 
-const MAX_FILES = 6;
-const MAX_TOTAL_CHARS = 28_000;
+const MAX_FILES = 8;
+const MAX_TOTAL_CHARS = 32_000;
+
+// Prioriza archivos con más superficie de ataque: auth, endpoints, DB, config,
+// manejo de input. Un audit pro mira primero donde suele estar el riesgo.
+const RISK_PATTERNS: Array<{ pattern: RegExp; score: number }> = [
+  { pattern: /auth|login|session|token|jwt|password|crypt/i, score: 10 },
+  { pattern: /\/api\/|routes?|controller|endpoint|handler/i, score: 8 },
+  { pattern: /db|database|query|sql|prisma|model/i, score: 7 },
+  { pattern: /config|env|secret|settings/i, score: 6 },
+  { pattern: /upload|file|payment|checkout|admin/i, score: 6 },
+  { pattern: /middleware|server|app\./i, score: 4 },
+  { pattern: /test|spec|mock|fixture|\.d\.ts$/i, score: -10 },
+];
+
+function riskScore(path: string): number {
+  return RISK_PATTERNS.reduce(
+    (total, { pattern, score }) => (pattern.test(path) ? total + score : total),
+    0,
+  );
+}
 
 // Detección de tecnologías por extensión y archivos característicos.
 const EXT_TECH: Record<string, string> = {
@@ -144,6 +163,7 @@ export async function POST(request: Request) {
       .filter((node) => node.type === "blob")
       .filter((node) => CODE_EXTENSIONS.has(node.path.split(".").pop()?.toLowerCase() ?? ""))
       .filter((node) => (node.size ?? 0) < 12_000)
+      .sort((a, b) => riskScore(b.path) - riskScore(a.path))
       .slice(0, MAX_FILES);
 
     // Solo detección: respuesta rápida con el stack, sin llamar al LLM.

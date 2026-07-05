@@ -140,6 +140,7 @@ export function ChatPanel({
   const lastModelMode = useRef<ModelMode | null>(null);
   const lastDetectedRepo = useRef<string | null>(null);
   const [repoTechs, setRepoTechs] = useState<string[] | null>(null);
+  const [repoFiles, setRepoFiles] = useState<string[] | null>(null);
   const [repoDetecting, setRepoDetecting] = useState(false);
 
   // isTauri = app de escritorio (capacidades nativas). En la web usamos
@@ -607,7 +608,9 @@ export function ChatPanel({
         body: JSON.stringify({ characterId: character.id, repoUrl: url }),
       });
 
-      const data = (await response.json()) as AuditReportData | { error?: string; message?: string };
+      const data = (await response.json()) as
+        | (AuditReportData & { filesAudited?: string[]; technologies?: string[] })
+        | { error?: string; message?: string };
       if (!response.ok || !("findings" in data)) {
         const code = "error" in data ? data.error : undefined;
         setError(
@@ -622,6 +625,8 @@ export function ChatPanel({
       }
 
       setAuditReport(data);
+      if (Array.isArray(data.filesAudited)) setRepoFiles(data.filesAudited);
+      if (Array.isArray(data.technologies)) setRepoTechs(data.technologies);
       await speak(data.characterVoicedSummary);
     } catch {
       setError("No pude leer ese repo ahora. Probá de nuevo.");
@@ -943,6 +948,24 @@ export function ChatPanel({
                       className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700"
                     >
                       {tech}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {repoFiles && repoFiles.length > 0 ? (
+              <div className="mt-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Archivos auditados (priorizados por riesgo)
+                </p>
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {repoFiles.map((file) => (
+                    <span
+                      key={file}
+                      className="rounded-full bg-slate-100 px-2.5 py-1 font-mono text-[11px] text-slate-600"
+                    >
+                      {file}
                     </span>
                   ))}
                 </div>
