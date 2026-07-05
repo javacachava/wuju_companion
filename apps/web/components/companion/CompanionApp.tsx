@@ -2,11 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { equipPart as equipCharacterPart, getInventory } from "@/lib/companion/api";
-import type {
-  CharacterInventory,
-  CharacterProfile,
-  PartCategory,
-} from "@/lib/companion/types";
+import type { CharacterInventory, CharacterProfile, PartCategory } from "@/lib/companion/types";
 import { DEFAULT_AVATAR } from "@/lib/companion/avatars";
 import { AssistantData } from "./AssistantData";
 import { ChatPanel } from "./ChatPanel";
@@ -14,9 +10,7 @@ import { ConfigPanel } from "./ConfigPanel";
 import { CharacterProvider, type CharacterState } from "./CharacterContext";
 import { CharacterInfo } from "./CharacterInfo";
 import { CharacterStage } from "./CharacterStage";
-import { PartsGrid } from "./PartsGrid";
 import { PermissionsPanel } from "./PermissionsPanel";
-import { WardrobeSelector } from "./WardrobeSelector";
 
 type CompanionAppProps = {
   character: CharacterProfile;
@@ -24,7 +18,6 @@ type CompanionAppProps = {
 };
 
 export function CompanionApp({ character, onCharacterChange }: CompanionAppProps) {
-  const [selectedCategory, setSelectedCategory] = useState<PartCategory>("hair");
   const [inventory, setInventory] = useState<CharacterInventory | null>(null);
   const [characterState, setCharacterState] = useState<CharacterState>("idle");
   const [codeGuardianEnabled, setCodeGuardianEnabled] = useState(false);
@@ -33,7 +26,6 @@ export function CompanionApp({ character, onCharacterChange }: CompanionAppProps
   const [view, setView] = useState<"chat" | "customize">("chat");
   const [permissionsOpen, setPermissionsOpen] = useState(false);
   const [configOpen, setConfigOpen] = useState(false);
-  const [partsSearch, setPartsSearch] = useState("");
 
   const activeAvatar = character.avatar ?? DEFAULT_AVATAR;
 
@@ -247,13 +239,7 @@ export function CompanionApp({ character, onCharacterChange }: CompanionAppProps
                 <p className="hidden text-xs text-slate-600 sm:block">Personaje y capacidades</p>
               </div>
             </div>
-            <div className="flex flex-1 items-center justify-end gap-2">
-              <input
-                value={partsSearch}
-                onChange={(event) => setPartsSearch(event.target.value)}
-                placeholder="Buscar partes..."
-                className="w-full max-w-[220px] rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-              />
+            <div className="flex shrink-0 items-center gap-2">
               <button
                 type="button"
                 onClick={() => setConfigOpen(true)}
@@ -271,20 +257,12 @@ export function CompanionApp({ character, onCharacterChange }: CompanionAppProps
             </div>
           </header>
 
-          <div className="grid gap-3 p-3 lg:grid-cols-[160px_minmax(0,1fr)_300px]">
-            <aside className="lg:order-1">
-              <WardrobeSelector
-                selected={selectedCategory}
-                onSelect={(next) => setSelectedCategory(next)}
-              />
-            </aside>
-
-            <section className="space-y-3 lg:order-2">
+          <div className="grid gap-3 p-3 lg:grid-cols-[minmax(0,1fr)_320px]">
+            <section className="space-y-3 lg:order-1">
               <CharacterStage />
-              <PartsGrid category={selectedCategory} search={partsSearch} />
             </section>
 
-            <aside className="space-y-3 lg:order-3">
+            <aside className="space-y-3 lg:order-2">
               <AssistantData />
               <CharacterInfo onOpenChat={() => setView("chat")} />
             </aside>
