@@ -1,8 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="96" fill="#1A365D"/>
-  <circle cx="256" cy="236" r="120" fill="#EBF8FF"/>
-  <circle cx="216" cy="220" r="18" fill="#1A365D"/>
-  <circle cx="296" cy="220" r="18" fill="#1A365D"/>
-  <path d="M206 272 Q256 312 306 272" stroke="#1A365D" stroke-width="14" stroke-linecap="round" fill="none"/>
-  <path d="M256 356 q-90 0 -118 68 q58 32 118 32 q60 0 118 -32 q-28 -68 -118 -68z" fill="#3182CE"/>
+  <!-- Logo Wuju Companion: cabeza robot navy + antena + cara blanca + ojos -->
+  <g fill="#0f1d33">
+    <!-- antena: stick + ball -->
+    <rect x="196" y="120" width="16" height="80" rx="8" transform="rotate(-18 204 160)" />
+    <circle cx="180" cy="104" r="34" />
+    <!-- cabeza -->
+    <ellipse cx="256" cy="300" rx="176" ry="166" />
+  </g>
+  <!-- cara -->
+  <ellipse cx="290" cy="312" rx="118" ry="100" fill="#ffffff" />
+  <!-- ojos -->
+  <rect x="252" y="278" width="22" height="64" rx="11" fill="#0f1d33" />
+  <rect x="322" y="278" width="22" height="64" rx="11" fill="#0f1d33" />
 </svg>
