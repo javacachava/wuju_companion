@@ -22,6 +22,7 @@ type CompanionLaunchExperienceProps = {
   character: CharacterProfile;
   onCharacterChange: (next: CharacterProfile) => void;
   onContinue: () => void;
+  isEmbedded?: boolean;
 };
 
 type LaunchStage = "intro" | "selector";
@@ -79,6 +80,7 @@ export function CompanionLaunchExperience({
   character,
   onCharacterChange,
   onContinue,
+  isEmbedded = false,
 }: CompanionLaunchExperienceProps) {
   const [stage, setStage] = useState<LaunchStage>("intro");
   const [isAnimating, setIsAnimating] = useState(false);
@@ -127,7 +129,11 @@ export function CompanionLaunchExperience({
   const activeState = BOX_STATES[frameIndex] ?? BOX_STATES[0];
 
   return (
-    <main className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-6xl items-center p-4 py-8 sm:p-6">
+    <main
+      className={`mx-auto flex w-full max-w-6xl items-center ${
+        isEmbedded ? "min-h-full p-3 sm:p-4" : "min-h-[calc(100vh-4rem)] p-4 py-8 sm:p-6"
+      }`}
+    >
       <AnimatePresence mode="wait">
         {stage === "intro" ? (
           <motion.section
