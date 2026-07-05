@@ -28,6 +28,15 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const characterId = z.string().min(1).parse(url.searchParams.get("characterId"));
 
+    const character = await db.character.findUnique({
+      where: { id: characterId },
+      select: { id: true },
+    });
+
+    if (!character) {
+      return Response.json({ error: "Character not found" }, { status: 404 });
+    }
+
     const items = await db.inventoryItem.findMany({
       where: { characterId },
       include: { part: true },

@@ -20,6 +20,15 @@ export async function GET(request: Request) {
       return Response.json(premiumParts);
     }
 
+    const character = await db.character.findUnique({
+      where: { id: characterId },
+      select: { id: true },
+    });
+
+    if (!character) {
+      return Response.json({ error: "Character not found" }, { status: 404 });
+    }
+
     const ownedItems = await db.inventoryItem.findMany({
       where: { characterId },
       select: { partId: true },

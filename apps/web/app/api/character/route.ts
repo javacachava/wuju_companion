@@ -156,13 +156,23 @@ export async function PATCH(request: Request) {
   try {
     const body = PatchCharacterSchema.parse(await request.json());
 
-    const inventoryItem = await db.inventoryItem.findFirst({
-      where: {
-        characterId: body.characterId,
-        partId: body.partId,
-      },
-      include: { part: true },
-    });
+    const [character, inventoryItem] = await Promise.all([
+      db.character.findUnique({
+        where: { id: body.characterId },
+        select: { id: true },
+      }),
+      db.inventoryItem.findFirst({
+        where: {
+          characterId: body.characterId,
+          partId: body.partId,
+        },
+        include: { part: true },
+      }),
+    ]);
+
+    if (!character) {
+      return Response.json({ error: "Character not found" }, { status: 404 });
+    }
 
     if (!inventoryItem) {
       return Response.json({ error: "Part is not in character inventory" }, { status: 403 });

@@ -37,7 +37,7 @@ export async function POST(request: Request) {
           skillKey: body.skillKey,
         },
       });
-    } else if (body.skillKey !== "chat-base") {
+    } else {
       await db.activeSkill.deleteMany({
         where: {
           characterId: body.characterId,
