@@ -3,6 +3,9 @@
   "identifier": "main-capability",
   "description": "Capacidades del sistema operativo para la ventana principal — Fase 2 de DESKTOP-MIGRATION-PLAN.md.",
   "windows": ["main"],
+  "remote": {
+    "urls": ["https://companion.wuju.dev"]
+  },
   "permissions": [
     "core:default",
     "mic-recorder:default",

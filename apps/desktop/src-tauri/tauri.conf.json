@@ -1,12 +1,12 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "El Compañero",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "identifier": "dev.wuju.companero.desktop",
   "build": {
     "beforeDevCommand": "pnpm --dir ../.. dev",
     "devUrl": "http://localhost:3000/companion",
-    "frontendDist": "https://companion.wuju.dev/companion"
+    "frontendDist": "../dist"
   },
   "app": {
     "withGlobalTauri": true,
@@ -14,7 +14,6 @@
       {
         "label": "main",
         "title": "El Compañero",
-        "url": "https://companion.wuju.dev/companion",
         "width": 1280,
         "height": 860,
         "minWidth": 960,

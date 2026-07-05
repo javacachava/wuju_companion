@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>El Compañero</title>
+    <style>
+      html, body {
+        margin: 0;
+        height: 100%;
+        background: #06162b;
+        color: #e2e8f0;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      }
+      .wrap {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+      }
+      .dot {
+        width: 44px;
+        height: 44px;
+        border-radius: 9999px;
+        border: 3px solid rgba(255, 255, 255, 0.15);
+        border-top-color: #60a5fa;
+        animation: spin 0.9s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .brand { font-size: 14px; letter-spacing: 0.25em; text-transform: uppercase; color: #93c5fd; }
+      .hint { font-size: 13px; color: #94a3b8; }
+      a { color: #93c5fd; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="brand">Wuju Companion</div>
+      <div class="dot"></div>
+      <div class="hint" id="hint">Abriendo tu compañero…</div>
+    </div>
+    <script>
+      // Cliente delgado: la app de escritorio carga el compañero hosteado.
+      // Redirección por JS (navegación normal del webview) — más confiable que
+      // frontendDist como URL, que dejaba la ventana en negro.
+      var TARGET = "https://companion.wuju.dev/companion";
+      setTimeout(function () {
+        window.location.replace(TARGET);
+      }, 300);
+      // Fallback visible si tarda mucho (sin conexión, etc.).
+      setTimeout(function () {
+        var h = document.getElementById("hint");
+        if (h) {
+          h.innerHTML =
+            'Tarda más de lo normal. <a href="' + TARGET + '">Reintentar</a>';
+        }
+      }, 8000);
+    </script>
+  </body>
+</html>
