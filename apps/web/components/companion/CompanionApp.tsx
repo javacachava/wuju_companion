@@ -28,6 +28,7 @@ export function CompanionApp({ character, onCharacterChange }: CompanionAppProps
   const [codeGuardianEnabled, setCodeGuardianEnabled] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [permissionsOpen, setPermissionsOpen] = useState(false);
+  const [partsSearch, setPartsSearch] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -117,9 +118,12 @@ export function CompanionApp({ character, onCharacterChange }: CompanionAppProps
               <p className="text-sm text-slate-600">Personalización y capacidades</p>
             </div>
             <div className="flex items-center gap-2">
-              <div className="flex w-full max-w-xs items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500">
-                Buscar partes...
-              </div>
+              <input
+                value={partsSearch}
+                onChange={(event) => setPartsSearch(event.target.value)}
+                placeholder="Buscar partes..."
+                className="w-full max-w-xs rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+              />
               <button
                 type="button"
                 onClick={() => setPermissionsOpen(true)}
@@ -140,7 +144,7 @@ export function CompanionApp({ character, onCharacterChange }: CompanionAppProps
 
             <section className="space-y-4 xl:order-2">
               <CharacterStage />
-              <PartsGrid category={selectedCategory} />
+              <PartsGrid category={selectedCategory} search={partsSearch} />
             </section>
 
             <aside className="space-y-4 xl:order-3">

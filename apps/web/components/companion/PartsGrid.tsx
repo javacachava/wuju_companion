@@ -7,20 +7,27 @@ import { useCharacter } from "./CharacterContext";
 
 type PartsGridProps = {
   category: PartCategory;
+  search?: string;
 };
 
 const PAGE_SIZE = 9;
 
-export function PartsGrid({ category }: PartsGridProps) {
+export function PartsGrid({ category, search = "" }: PartsGridProps) {
   const { character, equipPart, inventory } = useCharacter();
   const [page, setPage] = useState(0);
   const [updatingPartId, setUpdatingPartId] = useState<string | null>(null);
 
+  const query = search.trim().toLowerCase();
+
   useEffect(() => {
     setPage(0);
-  }, [category]);
+  }, [category, query]);
 
-  const items = useMemo(() => inventory?.[category] ?? [], [category, inventory]);
+  const items = useMemo(() => {
+    const all = inventory?.[category] ?? [];
+    if (!query) return all;
+    return all.filter((part) => part.name.toLowerCase().includes(query));
+  }, [category, inventory, query]);
   const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages - 1);
   const pageItems = items.slice(
