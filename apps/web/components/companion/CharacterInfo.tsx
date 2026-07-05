@@ -45,7 +45,7 @@ export function CharacterInfo({ onOpenChat }: CharacterInfoProps) {
       <button
         type="button"
         onClick={onOpenChat}
-        className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md bg-fuchsia-700 px-3 py-2 text-sm font-semibold text-white transition hover:bg-fuchsia-800"
+        className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md bg-[#06162b] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[#0b2342]"
       >
         <MessageCircle className="h-4 w-4" />
         Abrir chat

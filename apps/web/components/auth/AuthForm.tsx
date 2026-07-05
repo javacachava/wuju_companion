@@ -215,7 +215,13 @@ export function AuthForm() {
               ) : (
                 <UserPlus className="h-4 w-4" />
               )}
-              {mode === "login" ? "Entrar" : "Crear cuenta gratis"}
+              {busy
+                ? mode === "login"
+                  ? "Entrando..."
+                  : "Creando tu cuenta..."
+                : mode === "login"
+                  ? "Entrar"
+                  : "Crear cuenta gratis"}
             </button>
           </form>
 

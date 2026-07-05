@@ -5,12 +5,14 @@ import { Github, Loader2, Mic, ScanText, Send, ShieldCheck, Square, Volume2, X }
 import type { CharacterProfile } from "@/lib/companion/types";
 import { captureScreenContext, formatContextForPrompt, type ScreenContext } from "@/lib/context-builder";
 import { isPermissionEnabled } from "@/lib/permissions";
+import { getSettings, MODEL_LABELS, needsPremiumModel, type ModelMode } from "@/lib/companion/settings";
 import type { CharacterState } from "./CharacterContext";
 import { AuditReport, type AuditReportData } from "./AuditReport";
 
 type ChatMessage = {
   id: string;
-  role: "user" | "assistant";
+  // "system" = avisos locales del compañero (ej. cambio de modelo). No van a la API.
+  role: "user" | "assistant" | "system";
   content: string;
 };
 
@@ -135,16 +137,26 @@ export function ChatPanel({
   const pendingVoiceSubmit = useRef<string | null>(null);
   const pendingScreenContext = useRef<ScreenContext | null>(null);
   const maxRecordingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastModelMode = useRef<ModelMode | null>(null);
+  const lastDetectedRepo = useRef<string | null>(null);
+  const [repoTechs, setRepoTechs] = useState<string[] | null>(null);
+  const [repoDetecting, setRepoDetecting] = useState(false);
+
+  // isTauri = app de escritorio (capacidades nativas). En la web usamos
+  // MediaRecorder (mic) y navigator.clipboard (pegar) como fallback.
+  const isTauri = useRef(false);
+  const webRecorder = useRef<MediaRecorder | null>(null);
+  const webChunks = useRef<Blob[]>([]);
 
   useEffect(() => {
-    setVoiceSpikeAvailable(Boolean(window.__TAURI__?.core?.invoke));
+    isTauri.current = Boolean(window.__TAURI__?.core?.invoke);
+    const webMicOk =
+      typeof navigator !== "undefined" && Boolean(navigator.mediaDevices?.getUserMedia);
+    setVoiceSpikeAvailable(isTauri.current || webMicOk);
   }, []);
 
   const handleCaptureScreenContext = async () => {
-    const tauri = window.__TAURI__;
-    if (!tauri?.core?.invoke || screenContextCapturing) {
-      return;
-    }
+    if (screenContextCapturing) return;
 
     if (!isPermissionEnabled("clipboard") && !isPermissionEnabled("screen")) {
       setError("Portapapeles y pantalla están desactivados en Permisos.");
@@ -155,25 +167,41 @@ export function ChatPanel({
     setScreenContextCapturing(true);
     setScreenContextReady(null);
 
-    try {
-      const context = await captureScreenContext(
-        { invoke: (command, args) => tauri.core!.invoke(command, args) },
-        {
-          clipboardAllowed: isPermissionEnabled("clipboard"),
-          screenAllowed: isPermissionEnabled("screen"),
-        },
-      );
+    const tauri = window.__TAURI__;
 
-      if (!context) {
-        setError("No encontré nada copiado ni texto legible en pantalla.");
+    try {
+      if (tauri?.core?.invoke) {
+        const context = await captureScreenContext(
+          { invoke: (command, args) => tauri.core!.invoke(command, args) },
+          {
+            clipboardAllowed: isPermissionEnabled("clipboard"),
+            screenAllowed: isPermissionEnabled("screen"),
+          },
+        );
+
+        if (!context) {
+          setError("No encontré nada copiado ni texto legible en pantalla.");
+          pendingScreenContext.current = null;
+          return;
+        }
+
+        pendingScreenContext.current = context;
+        setScreenContextReady(context.source);
+        return;
+      }
+
+      // Web: solo portapapeles (la captura de pantalla es exclusiva del escritorio).
+      const text = await navigator.clipboard.readText().catch(() => "");
+      if (!text.trim()) {
+        setError("No encontré nada copiado. Copiá el texto o código primero.");
         pendingScreenContext.current = null;
         return;
       }
 
-      pendingScreenContext.current = context;
-      setScreenContextReady(context.source);
+      pendingScreenContext.current = { source: "clipboard", text };
+      setScreenContextReady("clipboard");
     } catch {
-      setError("No pude capturar el contexto de pantalla.");
+      setError("No pude capturar el contexto.");
       pendingScreenContext.current = null;
     } finally {
       setScreenContextCapturing(false);
@@ -253,6 +281,31 @@ export function ChatPanel({
     setChatLoading(true);
     onCharacterStateChange("thinking");
 
+    // Economía de tokens: según la magnitud/complejidad del mensaje elegimos
+    // modo rápido o premium, y avisamos en el chat cuando cambia.
+    const settings = getSettings();
+    const nextMode: ModelMode =
+      settings.model === "auto" || settings.saveTokens
+        ? needsPremiumModel(displayMessage)
+          ? "premium"
+          : "fast"
+        : settings.model;
+    const modeChanged = lastModelMode.current !== null && lastModelMode.current !== nextMode;
+    const isFirstMode = lastModelMode.current === null;
+    lastModelMode.current = nextMode;
+
+    const noticeMessages: ChatMessage[] = [];
+    if (modeChanged || isFirstMode) {
+      noticeMessages.push({
+        id: crypto.randomUUID(),
+        role: "system",
+        content:
+          nextMode === "premium"
+            ? `⚡ Modo ${MODEL_LABELS.premium.label} — mensaje complejo, uso el modelo con mejor razonamiento.`
+            : `🍃 Modo ${MODEL_LABELS.fast.label} — tarea simple, ahorro tokens con el modelo liviano.`,
+      });
+    }
+
     const userMessage: ChatMessage = {
       id: crypto.randomUUID(),
       role: "user",
@@ -263,7 +316,7 @@ export function ChatPanel({
       role: "assistant",
       content: "",
     };
-    setMessages((current) => [...current, userMessage, assistantMessage]);
+    setMessages((current) => [...current, ...noticeMessages, userMessage, assistantMessage]);
 
     let fullText = "";
 
@@ -365,66 +418,93 @@ export function ChatPanel({
     }
   }, []);
 
+  // Envía el audio (wav de Tauri o webm del navegador) a Whisper y dispara el chat.
+  const transcribeFile = useCallback(
+    async (file: File) => {
+      setVoiceSpikeTranscribing(true);
+      onCharacterStateChange("thinking");
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("language", "es");
+
+        const response = await fetch("/api/voice-spike/transcribe", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = (await response.json().catch(() => null)) as { text?: string } | null;
+
+        if (!response.ok || typeof data?.text !== "string") {
+          setError(
+            response.status === 504
+              ? "La transcripción tardó demasiado. Probá de nuevo."
+              : "No pude transcribir el audio. Probá de nuevo.",
+          );
+          onCharacterStateChange("idle");
+          return;
+        }
+
+        injectVoiceTextAndSubmit(data.text);
+      } catch {
+        setError("No pude transcribir el audio.");
+        onCharacterStateChange("idle");
+      } finally {
+        setVoiceSpikeTranscribing(false);
+      }
+    },
+    [onCharacterStateChange],
+  );
+
   const stopVoiceSpikeAndTranscribe = useCallback(async () => {
-    const tauri = window.__TAURI__;
     clearMaxRecordingTimer();
-
-    if (!tauri?.core?.invoke) {
-      return;
-    }
-
     setVoiceSpikeRecording(false);
-    setVoiceSpikeTranscribing(true);
-    onCharacterStateChange("thinking");
 
-    let recordingPath: string | null = null;
+    const tauri = window.__TAURI__;
 
-    try {
-      recordingPath = await tauri.core.invoke<string>(STOP_RECORDING_COMMAND);
-    } catch {
-      setError("No pude detener la grabación.");
-      onCharacterStateChange("idle");
-      setVoiceSpikeTranscribing(false);
-      return;
-    }
-
-    try {
-      const audioBuffer = await readTauriFile(tauri, recordingPath);
-
-      const formData = new FormData();
-      formData.append("file", new File([audioBuffer], "voice-spike.wav", { type: "audio/wav" }));
-      formData.append("language", "es");
-
-      const response = await fetch("/api/voice-spike/transcribe", {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = (await response.json().catch(() => null)) as { text?: string } | null;
-
-      if (!response.ok || typeof data?.text !== "string") {
-        setError(
-          response.status === 504
-            ? "La transcripción tardó demasiado. Probá de nuevo."
-            : "No pude transcribir el audio. Probá de nuevo.",
-        );
+    // Escritorio (Tauri): detener el plugin y leer el wav.
+    if (isTauri.current && tauri?.core?.invoke) {
+      let recordingPath: string | null = null;
+      try {
+        recordingPath = await tauri.core.invoke<string>(STOP_RECORDING_COMMAND);
+      } catch {
+        setError("No pude detener la grabación.");
         onCharacterStateChange("idle");
         return;
       }
 
-      injectVoiceTextAndSubmit(data.text);
-    } catch {
-      setError("No pude leer el audio grabado.");
-      onCharacterStateChange("idle");
-    } finally {
-      setVoiceSpikeTranscribing(false);
-      void removeTauriFile(tauri, recordingPath);
+      try {
+        const audioBuffer = await readTauriFile(tauri, recordingPath);
+        await transcribeFile(new File([audioBuffer], "voice-spike.wav", { type: "audio/wav" }));
+      } catch {
+        setError("No pude leer el audio grabado.");
+        onCharacterStateChange("idle");
+      } finally {
+        void removeTauriFile(tauri, recordingPath);
+      }
+      return;
     }
-  }, [clearMaxRecordingTimer, onCharacterStateChange]);
+
+    // Web: cerrar el MediaRecorder y mandar el webm.
+    const recorder = webRecorder.current;
+    if (!recorder) return;
+
+    const blob: Blob = await new Promise((resolve) => {
+      recorder.onstop = () =>
+        resolve(new Blob(webChunks.current, { type: recorder.mimeType || "audio/webm" }));
+      recorder.stop();
+    });
+    recorder.stream.getTracks().forEach((track) => track.stop());
+    webRecorder.current = null;
+    webChunks.current = [];
+
+    // Forzamos "audio/webm" pelado: el endpoint valida contra tipos exactos y
+    // MediaRecorder suele reportar "audio/webm;codecs=opus".
+    await transcribeFile(new File([blob], "voice-web.webm", { type: "audio/webm" }));
+  }, [clearMaxRecordingTimer, onCharacterStateChange, transcribeFile]);
 
   const handleVoiceSpike = async () => {
-    const tauri = window.__TAURI__;
-    if (!tauri?.core?.invoke || voiceSpikeTranscribing || chatLoading) {
+    if (voiceSpikeTranscribing || chatLoading) {
       return;
     }
 
@@ -440,8 +520,23 @@ export function ChatPanel({
       return;
     }
 
+    const tauri = window.__TAURI__;
+
     try {
-      await tauri.core.invoke<unknown>(START_RECORDING_COMMAND);
+      if (isTauri.current && tauri?.core?.invoke) {
+        await tauri.core.invoke<unknown>(START_RECORDING_COMMAND);
+      } else {
+        // Web: MediaRecorder estándar del navegador.
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const recorder = new MediaRecorder(stream);
+        webChunks.current = [];
+        recorder.ondataavailable = (event) => {
+          if (event.data.size > 0) webChunks.current.push(event.data);
+        };
+        recorder.start();
+        webRecorder.current = recorder;
+      }
+
       setVoiceSpikeRecording(true);
       onCharacterStateChange("thinking");
       clearMaxRecordingTimer();
@@ -449,7 +544,7 @@ export function ChatPanel({
         void stopVoiceSpikeAndTranscribe();
       }, MAX_RECORDING_MS);
     } catch {
-      setError("No pude iniciar el micrófono.");
+      setError("No pude iniciar el micrófono. Dale permiso al navegador si te lo pide.");
       onCharacterStateChange("idle");
     }
   };
@@ -536,6 +631,38 @@ export function ChatPanel({
     }
   };
 
+  // Al pegar un repo válido: detecta tecnologías al instante y lanza el audit solo.
+  useEffect(() => {
+    const url = repoUrl.trim();
+    if (!repoAuditOpen || !url) return;
+    if (!/github\.com\/[^/]+\/[^/]+/i.test(url) && !/^[\w.-]+\/[\w.-]+$/.test(url)) return;
+    if (lastDetectedRepo.current === url) return;
+    lastDetectedRepo.current = url;
+
+    setRepoTechs(null);
+    setRepoDetecting(true);
+
+    void (async () => {
+      try {
+        const res = await fetch("/api/audit-repo", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ characterId: character.id, repoUrl: url, detectOnly: true }),
+        });
+        const data = (await res.json()) as { technologies?: string[] };
+        if (res.ok && Array.isArray(data.technologies)) {
+          setRepoTechs(data.technologies);
+          void handleAuditRepo();
+        }
+      } catch {
+        // silencioso: el usuario todavía puede auditar con el botón
+      } finally {
+        setRepoDetecting(false);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [repoUrl, repoAuditOpen, character.id]);
+
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -587,22 +714,30 @@ export function ChatPanel({
             Todavía no hay mensajes. Decile hola al Compañero.
           </p>
         ) : (
-          messages.slice(-20).map((message) => (
-            <div
-              key={message.id}
-              className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
-            >
-              <div
-                className={`max-w-[82%] rounded-lg px-3 py-2 text-sm ${
-                  message.role === "user"
-                    ? "bg-blue-600 text-white"
-                    : "border border-slate-200 bg-white text-slate-700"
-                }`}
-              >
-                {message.content || (chatLoading ? "Escribiendo..." : "")}
+          messages.slice(-20).map((message) =>
+            message.role === "system" ? (
+              <div key={message.id} className="flex justify-center">
+                <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-medium text-slate-500 shadow-sm">
+                  {message.content}
+                </span>
               </div>
-            </div>
-          ))
+            ) : (
+              <div
+                key={message.id}
+                className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+              >
+                <div
+                  className={`max-w-[82%] rounded-lg px-3 py-2 text-sm ${
+                    message.role === "user"
+                      ? "bg-blue-600 text-white"
+                      : "border border-slate-200 bg-white text-slate-700"
+                  }`}
+                >
+                  {message.content || (chatLoading ? "Escribiendo..." : "")}
+                </div>
+              </div>
+            ),
+          )
         )}
       </div>
 
@@ -784,10 +919,35 @@ export function ChatPanel({
               <input
                 value={repoUrl}
                 onChange={(event) => setRepoUrl(event.target.value)}
-                placeholder="https://github.com/usuario/repo"
+                placeholder="https://github.com/usuario/repo — pegalo y arranco solo"
                 className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none ring-slate-300 transition focus:ring-2"
               />
             </div>
+
+            {repoDetecting ? (
+              <p className="mt-3 flex items-center gap-2 text-xs text-slate-500">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Leyendo el repo y detectando tecnologías...
+              </p>
+            ) : null}
+
+            {repoTechs && repoTechs.length > 0 ? (
+              <div className="mt-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Tecnologías detectadas
+                </p>
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {repoTechs.map((tech) => (
+                    <span
+                      key={tech}
+                      className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700"
+                    >
+                      {tech}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : null}
 
             <button
               type="button"
@@ -796,7 +956,7 @@ export function ChatPanel({
               className="mt-4 inline-flex items-center gap-2 rounded-md bg-[#06162b] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#0b2342] disabled:cursor-not-allowed disabled:bg-slate-300"
             >
               {auditLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
-              {auditLoading ? "Leyendo el repo..." : "Auditar repo"}
+              {auditLoading ? "Buscando vulnerabilidades..." : "Auditar de nuevo"}
             </button>
 
             {auditReport ? (
