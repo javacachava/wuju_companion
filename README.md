@@ -36,7 +36,8 @@ Este repo es el MVP construido en 24 horas para el hackathon. El pack completo d
 | IA | Vercel AI SDK + OpenAI/Codex |
 | Voz | ElevenLabs API con cache |
 | Automatización | n8n (Cloud o Docker en el VPS) |
-| Datos | SQLite + Prisma ORM |
+| Datos | PostgreSQL + Prisma ORM |
+| Data MCP | DataMCP como gateway MCP seguro hacia PostgreSQL |
 | Hosting | VPS propio (`next start` + pm2 + Caddy) |
 | Package manager | pnpm |
 
@@ -46,7 +47,9 @@ Este repo es el MVP construido en 24 horas para el hackathon. El pack completo d
 - Node.js 20+
 - pnpm 9+
 - Una cuenta con API keys de: OpenAI, ElevenLabs
+- PostgreSQL local vía Docker, o una DB PostgreSQL gestionada
 - (Opcional) Instancia de n8n corriendo en n8n Cloud, el VPS o local
+- (Opcional) DataMCP conectado a la misma DB PostgreSQL para Codex/Cursor/Claude
 
 ### Instalación
 
@@ -62,8 +65,11 @@ pnpm install
 cp .env.example .env
 # Editar .env con tus API keys
 
+# Levantar PostgreSQL local
+docker compose up -d postgres
+
 # Setup de la base de datos
-pnpm prisma migrate dev --name init
+pnpm prisma migrate deploy --schema prisma/schema.prisma
 pnpm prisma db seed
 
 # Levantar el servidor
@@ -75,7 +81,7 @@ Abrí [http://localhost:3000](http://localhost:3000).
 ### Variables de entorno mínimas
 
 ```env
-DATABASE_URL="file:./dev.db"
+DATABASE_URL="postgresql://companero:companero@localhost:5432/companero?schema=public"
 OPENAI_API_KEY=sk-...
 ELEVENLABS_API_KEY=...
 NEXT_PUBLIC_APP_URL=http://localhost:3000
@@ -86,6 +92,10 @@ N8N_WEBHOOK_SECRET=your-secret
 
 # Solo Dev B usa esta
 FAL_API_KEY=...
+
+# Opcionales: DataMCP, solo para herramientas de IA conectadas a la DB
+DATAMCP_MCP_URL=https://api.datamcp.app/api/mcp/conn_xxx?key=xxx
+DATAMCP_API_KEY=sk_live_...
 ```
 
 ## Estructura del monorepo
@@ -116,6 +126,7 @@ companero/
 └── docs/                        # documentación técnica y de contexto
     ├── AGENTS.md                # contexto para agentes de IA (Codex, Cursor)
     ├── CONTRATOS.md             # fuente de verdad de endpoints y schemas
+    ├── DATAMCP.md               # setup DataMCP + Codex/Cursor/Claude
     ├── BRAND.md                 # paleta, tipografía, tono
     ├── PITCH.md                 # pitch en 3 versiones
     ├── SKETCH.md                # descripción del layout

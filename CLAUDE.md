@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Estado del repo
 
-No hay código todavía — solo documentación de planificación (`docs/`) y `AGENTS.md`/`README.md`. No existe `package.json`, no hay `apps/web/`, no hay `prisma/`. Cuando generes código, seguí la estructura de monorepo descrita abajo (todavía por crear).
+El MVP ya está implementado como monorepo Next.js en `apps/web/`, con Prisma en `prisma/`, workflows n8n en `infra/n8n/` y assets en `public/parts/`. Antes de tocar código, leé `docs/CONTRATOS.md` y la doc del dev dueño del área.
 
 ## Qué es este proyecto
 
@@ -18,16 +18,18 @@ El MVP tiene un solo pack completo — **desarrollo** — con dos capacidades: *
 - **Estilo:** Tailwind CSS v4 + shadcn/ui + Framer Motion
 - **IA:** Vercel AI SDK, proveedor principal OpenAI/Codex (streaming)
 - **Voz:** ElevenLabs API con cache en memoria
-- **Datos:** SQLite + Prisma ORM
+- **Datos:** PostgreSQL + Prisma ORM
+- **Data MCP:** DataMCP como gateway MCP seguro hacia PostgreSQL para Codex/Cursor/Claude
 - **Automatización:** n8n Cloud (cupón Pro del hackathon) o Docker en el VPS
-- **Deploy:** VPS propio con `next start` + pm2 + Caddy (TLS automático). SQLite necesita disco persistente — no usar Vercel/Netlify para la app
+- **Deploy:** VPS propio con `next start` + pm2 + Caddy (TLS automático), usando PostgreSQL local/gestionado
 - **Package manager:** pnpm
 
 ## Comandos (una vez creado el proyecto)
 
 ```bash
 pnpm install
-pnpm prisma migrate dev --name init
+docker compose up -d postgres
+pnpm prisma migrate deploy --schema prisma/schema.prisma
 pnpm prisma db seed
 pnpm dev
 pnpm lint
@@ -81,6 +83,7 @@ Detalle completo de request/response en `docs/CONTRATOS.md`.
 - Dev C — compañero UI, mascota, wardrobe, chat → `docs/DEV-C.md`
 - Dev D — backend, IA, n8n → `docs/DEV-D.md`
 - Dev E — datos, persistencia, seeds → `docs/DEV-E.md`
+- DataMCP / PostgreSQL / MCP tools → `docs/DATAMCP.md`
 
 Antes de trabajar en un endpoint/componente: leer `docs/CONTRATOS.md`, después la doc del dev dueño del área.
 

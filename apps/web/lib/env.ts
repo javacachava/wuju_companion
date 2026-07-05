@@ -7,6 +7,8 @@ const serverSchema = z.object({
   N8N_WEBHOOK_URL: z.string().optional(),
   N8N_WEBHOOK_SECRET: z.string().optional(),
   FAL_API_KEY: z.string().optional(),
+  DATAMCP_MCP_URL: z.string().optional(),
+  DATAMCP_API_KEY: z.string().optional(),
 });
 
 const clientSchema = z.object({
