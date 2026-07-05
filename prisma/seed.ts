@@ -124,7 +124,7 @@ const parts = [
   },
   {
     category: "eyes",
-    name: "Guino",
+    name: "Guiño",
     imageUrl: "/parts/eyes-guino.png",
     isPremium: true,
     price: 250,
@@ -145,14 +145,14 @@ const parts = [
   },
   {
     category: "mouth",
-    name: "Picara",
+    name: "Pícara",
     imageUrl: "/parts/mouth-picara.png",
     isPremium: true,
     price: 350,
   },
   {
     category: "accessory",
-    name: "Audifonos",
+    name: "Audífonos",
     imageUrl: "/parts/accessory-audifonos.png",
     isPremium: true,
     price: 400,
@@ -192,7 +192,7 @@ async function upsertPart(part: (typeof parts)[number]) {
   const existing = await prisma.part.findFirst({
     where: {
       category: part.category,
-      name: part.name,
+      OR: [{ name: part.name }, { imageUrl: part.imageUrl }],
     },
   });
 
@@ -302,14 +302,27 @@ async function main() {
         {
           characterId: demo.id,
           role: "user",
-          content: "Hola, que podes hacer?",
+          content: "Hola, ¿qué podés hacer?",
           skillUsed: "chat-base",
         },
         {
           characterId: demo.id,
           role: "assistant",
           content:
-            "Hola! Soy tu Companero. Puedo charlar con vos, revisar codigo con el Guardian de codigo, y crecer con mas packs de habilidades.",
+            "¡Hola! Soy tu Compañero. Puedo charlar con vos, revisarte código con el Guardián de código, y en el futuro voy a tener más packs de habilidades. ¿Querés que empecemos por algo?",
+          skillUsed: "chat-base",
+        },
+        {
+          characterId: demo.id,
+          role: "user",
+          content: "Contame de vos",
+          skillUsed: "chat-base",
+        },
+        {
+          characterId: demo.id,
+          role: "assistant",
+          content:
+            "Soy un asistente libre y auditable. Vos me elegís la cara y la voz, y podés decidir en cualquier momento qué puedo ver y qué no.",
           skillUsed: "chat-base",
         },
       ],
