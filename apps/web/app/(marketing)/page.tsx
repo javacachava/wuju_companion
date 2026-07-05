@@ -17,6 +17,10 @@ import {
   UserRoundCog,
 } from "lucide-react";
 
+const RELEASES_URL =
+  "https://github.com/javacachava/wuju_companion/releases/tag/desktop-v0.1.0";
+const WINDOWS_INSTALLER_URL = `${RELEASES_URL.replace("/tag/", "/download/")}/El.Companero_0.1.0_x64-setup.exe`;
+
 const providers = [
   { name: "OpenAI", Icon: Bot, className: "text-slate-950" },
   { name: "Claude", Icon: Sparkles, className: "text-slate-950" },
@@ -128,21 +132,28 @@ export default function LandingPage() {
             </p>
 
             <div className="mt-10 flex flex-col gap-4 sm:flex-row">
-              <Link
-                href="/companion"
+              <a
+                href={WINDOWS_INSTALLER_URL}
                 className="inline-flex min-h-14 items-center justify-center gap-3 rounded-md bg-[#06162b] px-7 text-base font-semibold text-white shadow-sm transition hover:bg-[#0b2342]"
               >
                 <PanelsTopLeft className="h-5 w-5" />
                 Descargar para Windows
-              </Link>
+              </a>
               <Link
-                href="/marketplace"
+                href="/companion"
                 className="inline-flex min-h-14 items-center justify-center gap-3 rounded-md border border-slate-300 bg-white px-7 text-base font-semibold text-slate-900 transition hover:border-slate-400 hover:bg-slate-50"
               >
                 <ShoppingBag className="h-5 w-5" />
-                Explorar Marketplace
+                Usar en el navegador
               </Link>
             </div>
+            <p className="mt-3 text-xs text-slate-500">
+              ¿Otro sistema?{" "}
+              <a href={RELEASES_URL} className="font-semibold text-blue-700 hover:text-blue-900">
+                macOS y Linux acá
+              </a>
+              . App sin firmar por ahora — Windows puede pedir confirmación al instalar.
+            </p>
 
             <div className="mt-14 flex flex-wrap items-center gap-x-7 gap-y-4 text-sm font-semibold text-slate-950 sm:text-base">
               <span className="font-medium text-slate-900">Funciona con:</span>
