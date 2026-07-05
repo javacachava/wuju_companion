@@ -80,6 +80,10 @@ Para inversores/jueces comerciales:
 Para posicionar contra competencia:
 > "Cursor es velocidad. ChatGPT es respuesta. Character.ai es compañía. El Compañero es las tres — con código abierto."
 
+## Nota técnica
+
+"Qué puede tocar" hoy es un permiso a nivel de aplicación (flag en base de datos), no un permiso real del sistema operativo. Hay un plan concreto para que sea literal — escritorio con permisos granulares reales, revocables y auditables — en `DESKTOP-MIGRATION-PLAN.md` (raíz del repo). No prometerlo como ya construido; hoy es MVP web.
+
 ## Qué NUNCA decir
 
 - No prometer features que no están (multi-vertical implementado, pagos reales)

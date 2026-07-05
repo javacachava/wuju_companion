@@ -75,6 +75,8 @@ El documento **`docs/CONTRATOS.md`** es la fuente de verdad de todos los endpoin
 - Base de datos vectorial. La memoria es JSON simple con últimas 20 interacciones.
 - Multi-proveedor de LLM. Solo OpenAI/Codex en el MVP.
 
+Estas reglas son del **MVP web** de este repo. Hay un plan separado y ya diseñado para migrar a escritorio (Tauri v2, multi-proveedor con BYO-key, memoria semántica) en `DESKTOP-MIGRATION-PLAN.md` (raíz del repo) — no lo empieces a implementar salvo que te pidan explícitamente una fase de ese plan, y en ese caso leé el documento completo antes de generar código.
+
 ## Tracks del hackathon (para tener presente)
 
 Este proyecto compite en 3 tracks:

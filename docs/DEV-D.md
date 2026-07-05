@@ -2,6 +2,8 @@
 
 > Tu responsabilidad: el cerebro del compañero. Chat, audit, voz y n8n. La parte más pesada del equipo.
 
+> **Nota:** cuando arranque la migración a escritorio, esta área es la más afectada — proveedor de IA (BYO-key, agnóstico de proveedor), Context Builder, Skill Registry y economía de tokens. Incluye reemplazar el mapa hardcodeado `personalityDescriptions` de `lib/ai.ts` por `CharacterTemplate.personalityPrompt` data-driven (Fase 7.1) — con capas de system prompt obligatorias (núcleo inmutable + prompt del creador) porque ese texto viene de terceros vía marketplace. Plan completo en `DESKTOP-MIGRATION-PLAN.md` (raíz del repo). Este documento describe el MVP web de hackathon; no lo mezcles con eso hasta que se pida empezar esa migración.
+
 ## Tu carpeta
 
 ```

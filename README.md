@@ -165,10 +165,11 @@ Un asistente que ve tus archivos debería ser un asistente que podés leer.
 ### Post-hackathon (próximos 3 meses)
 - OAuth opcional (GitHub, Google) sobre el auth propio
 - Pagos reales con Stripe + Stripe Connect para creadores (hoy simulado)
-- App de escritorio nativa con Tauri (instaladores Windows/Linux/macOS)
-- Memoria semántica con pgvector
+- **App de escritorio nativa con Tauri v2** — plan completo, fase por fase (voz, permisos reales del sistema, memoria semántica, multi-pack), en [`DESKTOP-MIGRATION-PLAN.md`](./DESKTOP-MIGRATION-PLAN.md)
 - Guardián de despliegue (conexión a GitHub + Supabase)
 - Portal de creadores con curaduría y dashboard de ventas
+
+> La migración a escritorio es donde "qué puede tocar" deja de ser un flag de app y pasa a ser un permiso real del sistema operativo — ver el plan detallado para el porqué de cada decisión técnica.
 
 ### Mediano plazo
 - Packs de marketing, diseño, negocios, estudio

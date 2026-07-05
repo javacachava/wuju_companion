@@ -2,6 +2,8 @@
 
 > Fuente de verdad de todos los endpoints, schemas y flujos. Si el código no coincide, se arregla el código.
 
+> **Nota:** la migración a escritorio (Fase 7 de `DESKTOP-MIGRATION-PLAN.md`, "Skill Registry") propone generalizar `/api/chat` y `/api/audit` a una ruta única `/api/skill/:skillKey`. La misma fase (sección 7.1) agrega un campo `personalityPrompt` (texto libre) a `CharacterTemplate` para que la personalidad sea producto real de marketplace, no un mapa hardcodeado — con curaduría obligatoria por el riesgo de prompt injection que eso abre. Mientras esa fase no se implemente, este documento sigue siendo la fuente de verdad tal cual está — cualquier cambio de contrato se hace primero acá, como siempre.
+
 ## Modelo de datos (Prisma)
 
 ### Character
@@ -90,7 +92,7 @@ model ActiveSkill {
 
 - `User` (email único, `passwordHash` scrypt, nombre) y `Session` (token opaco, expiración 30 días) — auth propio sin terceros.
 - `Character.userId?` — personaje opcionalmente atado a una cuenta.
-- `CharacterTemplate` (catálogo de personajes vendibles: key, rol, voz, stats, `priceCents`) y `Pack` (packs de capacidades: skills, `priceCents`, `available` para "próximamente").
+- `CharacterTemplate` (catálogo de personajes vendibles: key, rol, voz, stats, `priceCents`, `personalityPrompt?` — Fase 7.1 de `DESKTOP-MIGRATION-PLAN.md`, texto libre de creador, nullable, requiere curaduría antes de publicar) y `Pack` (packs de capacidades: skills, `priceCents`, `available` para "próximamente").
 - `Order` + `OrderItem` (compras, `status: 'paid_simulated'`) y `Ownership` (qué producto posee cada usuario, único por `userId+productType+productId`).
 - Precios en **centavos USD** (`priceCents`; `Part.price` se interpreta en centavos). `0` = gratis.
 
@@ -153,6 +155,19 @@ Schema completo en `prisma/schema.prisma`.
 `severity`: `"critical" | "high" | "medium" | "low"`
 
 Si hay al menos un finding `critical`, se dispara webhook a n8n al final.
+
+---
+
+### `POST /api/skill/:skillKey` — Skill Registry (Fase 7, aditivo)
+
+**Estado:** implementado como capa nueva, en paralelo a `/api/chat` y `/api/audit` — NO los reemplaza todavía. `ChatPanel.tsx` sigue llamando a las rutas de siempre. Documentado acá porque ya es contrato real, no solo plan.
+
+`skillKey` válido: `"chat-base" | "code-guardian"` (ver `lib/skills/registry.ts`). Cualquier otro valor → `404 { error: "unknown_skill" }`.
+
+**Request (`chat-base`):** `{ characterId, message }` → misma respuesta en streaming que `/api/chat`.
+**Request (`code-guardian`):** `{ characterId, code, language }` → mismo `AuditReport` que `/api/audit`.
+
+Agregar un pack nuevo (Fase 7) = agregar una entrada a `SKILL_REGISTRY`, no una ruta nueva.
 
 ---
 
