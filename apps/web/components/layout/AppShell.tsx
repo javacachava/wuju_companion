@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut } from "lucide-react";
+import { LogOut, X } from "lucide-react";
 import { useSession } from "@/components/auth/SessionContext";
 import { CompanionGlobalProvider, useCompanionGlobal } from "@/components/companion/CompanionGlobalContext";
 
@@ -155,25 +155,65 @@ type FloatingPetProps = {
 function FloatingPet({ onOpenLauncher }: FloatingPetProps) {
   const { character } = useCompanionGlobal();
   const assistant = character?.assistant;
+  const [hidden, setHidden] = useState(false);
+
+  useEffect(() => {
+    setHidden(
+      typeof window !== "undefined" && localStorage.getItem("pet-hidden") === "1",
+    );
+  }, []);
 
   if (!assistant) return null;
 
   const petImage = character?.avatar?.image ?? "/marketplace/characters/policia.png";
 
-  return (
-    <button
-      type="button"
-      onClick={onOpenLauncher}
-      className="fixed bottom-4 right-4 z-40 flex items-center gap-2 rounded-full border border-slate-200 bg-white py-1.5 pl-1.5 pr-3 shadow-lg transition hover:shadow-xl"
-    >
-      <span className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-50">
+  const hide = () => {
+    setHidden(true);
+    if (typeof window !== "undefined") localStorage.setItem("pet-hidden", "1");
+  };
+
+  // Oculta: solo una burbujita chica para traerla de vuelta.
+  if (hidden) {
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          setHidden(false);
+          if (typeof window !== "undefined") localStorage.removeItem("pet-hidden");
+        }}
+        aria-label="Mostrar mascota"
+        className="fixed bottom-20 right-4 z-40 inline-flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-white shadow-lg transition hover:shadow-xl"
+      >
         {/* eslint-disable-next-line @next/next/no-img-element -- avatar local */}
         <img src={petImage} alt="" className="h-9 w-9 object-contain" draggable={false} />
-      </span>
-      <span className="pr-1 text-left">
-        <span className="block text-xs text-slate-500">Mascota activa</span>
-        <span className="block text-sm font-semibold text-slate-900">{assistant.name}</span>
-      </span>
-    </button>
+      </button>
+    );
+  }
+
+  return (
+    <div className="fixed bottom-20 right-4 z-40 flex items-center gap-2 rounded-full border border-slate-200 bg-white py-1.5 pl-1.5 pr-2 shadow-lg">
+      <button
+        type="button"
+        onClick={onOpenLauncher}
+        className="flex items-center gap-2 rounded-full pr-1 transition hover:opacity-80"
+      >
+        <span className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-50">
+          {/* eslint-disable-next-line @next/next/no-img-element -- avatar local */}
+          <img src={petImage} alt="" className="h-9 w-9 object-contain" draggable={false} />
+        </span>
+        <span className="text-left">
+          <span className="block text-xs text-slate-500">Mascota activa</span>
+          <span className="block text-sm font-semibold text-slate-900">{assistant.name}</span>
+        </span>
+      </button>
+      <button
+        type="button"
+        onClick={hide}
+        aria-label="Ocultar mascota"
+        className="ml-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+      >
+        <X className="h-3.5 w-3.5" />
+      </button>
+    </div>
   );
 }

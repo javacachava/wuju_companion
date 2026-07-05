@@ -268,6 +268,39 @@ export function ChatPanel({
       return;
     }
 
+    // Si el usuario pega un link de GitHub en el chat, lo mandamos al modo
+    // Byte Warden (audit) en vez del chat normal — el chat no accede a links.
+    const repoMatch = displayMessage.match(/https?:\/\/github\.com\/[\w.-]+\/[\w.-]+/i);
+    if (repoMatch && codeGuardianEnabled) {
+      setInput("");
+      setMessages((current) => [
+        ...current,
+        { id: crypto.randomUUID(), role: "user", content: displayMessage },
+        {
+          id: crypto.randomUUID(),
+          role: "system",
+          content: "🛡️ Detecté un repo — abriendo el modo Byte Warden para auditarlo.",
+        },
+      ]);
+      setRepoUrl(repoMatch[0]);
+      setRepoAuditOpen(true);
+      return;
+    }
+    if (repoMatch && !codeGuardianEnabled) {
+      setInput("");
+      setMessages((current) => [
+        ...current,
+        { id: crypto.randomUUID(), role: "user", content: displayMessage },
+        {
+          id: crypto.randomUUID(),
+          role: "system",
+          content:
+            "Para auditar repos activá el Guardián de código (botón Activar Guardián en Personalizar).",
+        },
+      ]);
+      return;
+    }
+
     // Si hay contexto de pantalla/portapapeles capturado (Fase 4), va SOLO al
     // servidor — el usuario en pantalla sigue viendo únicamente lo que escribió.
     const screenContext = pendingScreenContext.current;
