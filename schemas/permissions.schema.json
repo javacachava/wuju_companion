@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Character permissions",
+  "type": "object",
+  "required": ["screen", "clipboard", "filesystem", "microphone"],
+  "additionalProperties": false,
+  "properties": {
+    "screen": { "type": "boolean" },
+    "clipboard": { "type": "boolean" },
+    "filesystem": { "type": "boolean" },
+    "microphone": { "type": "boolean" },
+    "ocr": { "type": "boolean" },
+    "notifications": { "type": "boolean" }
+  }
+}

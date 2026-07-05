@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Character voice",
+  "type": "object",
+  "required": ["provider", "voiceId", "speed", "pitch"],
+  "additionalProperties": false,
+  "properties": {
+    "provider": { "type": "string", "minLength": 1 },
+    "voiceId": { "type": "string", "minLength": 1 },
+    "speed": { "type": "number", "minimum": 0.5, "maximum": 2 },
+    "pitch": { "type": "number", "minimum": -12, "maximum": 12 },
+    "language": { "type": "string", "minLength": 2, "maxLength": 10 }
+  }
+}

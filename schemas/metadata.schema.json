@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Character metadata",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "author",
+    "version",
+    "description",
+    "category",
+    "price",
+    "voice",
+    "personality",
+    "instructions",
+    "skin",
+    "permissions"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9_]+$", "minLength": 3, "maxLength": 64 },
+    "name": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "author": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "description": { "type": "string", "minLength": 1, "maxLength": 400 },
+    "category": {
+      "type": "string",
+      "enum": ["Programming", "Business", "Design", "Education", "Productivity"]
+    },
+    "price": { "type": "integer", "minimum": 0 },
+    "voice": { "type": "string", "minLength": 1 },
+    "personality": { "type": "string", "minLength": 1 },
+    "instructions": { "type": "string", "minLength": 1 },
+    "skin": { "type": "string", "minLength": 1 },
+    "permissions": { "type": "string", "minLength": 1 },
+    "preview": { "type": "string" },
+    "icon": { "type": "string" }
+  }
+}
