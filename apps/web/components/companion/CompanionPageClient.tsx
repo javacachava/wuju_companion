@@ -1,18 +1,13 @@
 "use client";
 
+import { Suspense } from "react";
+import { AuthForm } from "@/components/auth/AuthForm";
 import { useCompanionGlobal } from "./CompanionGlobalContext";
 import { CompanionApp } from "./CompanionApp";
 import { CompanionLaunchExperience } from "./CompanionLaunchExperience";
-import { Onboarding } from "./Onboarding";
 
 export function CompanionPageClient() {
-  const {
-    character,
-    completeSelection,
-    createCharacter,
-    status,
-    updateCharacter,
-  } = useCompanionGlobal();
+  const { character, completeSelection, status, updateCharacter } = useCompanionGlobal();
 
   if (status === "checking") {
     return (
@@ -22,8 +17,13 @@ export function CompanionPageClient() {
     );
   }
 
-  if (status === "onboarding" || !character) {
-    return <Onboarding onContinue={createCharacter} />;
+  // Sin sesión: se pide login/registro antes de cualquier cosa del compañero.
+  if (status === "auth" || !character) {
+    return (
+      <Suspense fallback={null}>
+        <AuthForm />
+      </Suspense>
+    );
   }
 
   if (status === "selecting") {

@@ -114,17 +114,13 @@ function toCharacterProfile(
   };
 }
 
-export async function getCharacter(userName: string): Promise<CharacterProfile> {
-  const character = await readJson<ApiCharacter>(
-    `/api/character?userName=${encodeURIComponent(userName)}`,
-  );
+// Session-based: el backend resuelve el personaje del usuario logueado (por userId).
+// Lanza si no hay sesión (401) — el flujo de /companion gatea con eso.
+export async function getCharacter(): Promise<CharacterProfile> {
+  const character = await readJson<ApiCharacter>("/api/character");
   const inventory = await getInventory(character.id);
 
   return toCharacterProfile(character, inventory);
-}
-
-export async function createCharacter(userName: string): Promise<CharacterProfile> {
-  return getCharacter(userName.trim().toLowerCase());
 }
 
 export async function getInventory(characterId: string): Promise<CharacterInventory> {

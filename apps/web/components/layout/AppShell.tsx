@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { LogOut } from "lucide-react";
+import { useSession } from "@/components/auth/SessionContext";
 import { CompanionGlobalProvider, useCompanionGlobal } from "@/components/companion/CompanionGlobalContext";
 
 type AppShellProps = {
@@ -19,6 +21,12 @@ export function AppShell({ children }: AppShellProps) {
 function AppShellInner({ children }: AppShellProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const { user, loading, logout } = useSession();
+
+  const handleLogout = async () => {
+    await logout();
+    router.push("/");
+  };
 
   return (
     <>
@@ -48,13 +56,44 @@ function AppShellInner({ children }: AppShellProps) {
             </NavLink>
           </nav>
 
-          <button
-            type="button"
-            onClick={() => router.push("/companion")}
-            className="rounded-md bg-[#06162b] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0b2342]"
-          >
-            Comenzar
-          </button>
+          <div className="flex items-center gap-3">
+            {loading ? null : user ? (
+              <>
+                <span className="hidden text-sm text-slate-600 sm:inline">{user.email}</span>
+                <button
+                  type="button"
+                  onClick={() => void handleLogout()}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Salir
+                </button>
+                <button
+                  type="button"
+                  onClick={() => router.push("/companion")}
+                  className="rounded-md bg-[#06162b] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0b2342]"
+                >
+                  Mi compañero
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="rounded-md border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:bg-slate-50"
+                >
+                  Ingresar
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => router.push("/companion")}
+                  className="rounded-md bg-[#06162b] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0b2342]"
+                >
+                  Comenzar
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </header>
 

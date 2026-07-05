@@ -95,7 +95,7 @@ async function getDefaultParts() {
   >;
 }
 
-async function createCharacter(userName: string, userId: string | null) {
+async function createCharacter(userName: string, userId: string) {
   const defaults = await getDefaultParts();
   const freeParts = await db.part.findMany({
     where: { isPremium: false },
@@ -133,33 +133,42 @@ async function createCharacter(userName: string, userId: string | null) {
   });
 }
 
-export async function GET(request: Request) {
+function slugifyUserName(input: string): string {
+  return (
+    input
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 24) || "companero"
+  );
+}
+
+// El personaje se ata a la CUENTA (userId), no a un nombre en localStorage.
+// Cada usuario logueado tiene exactamente un personaje; se crea la primera vez.
+async function ensureCharacterForUser(userId: string, displayName: string) {
+  const existing = await db.character.findFirst({ where: { userId } });
+  if (existing) return existing;
+
+  const base = slugifyUserName(displayName);
+  let userName = base;
+  for (let n = 2; await db.character.findUnique({ where: { userName } }); n += 1) {
+    userName = `${base}-${n}`;
+  }
+
+  return createCharacter(userName, userId);
+}
+
+export async function GET() {
   try {
-    const url = new URL(request.url);
-    const userName = z.string().trim().min(1).parse(url.searchParams.get("userName"));
-
-    const [character, sessionUser] = await Promise.all([
-      db.character.findUnique({ where: { userName } }),
-      getSessionUser(),
-    ]);
-
-    let resolvedCharacter = character;
-    if (!resolvedCharacter) {
-      resolvedCharacter = await createCharacter(userName, sessionUser?.id ?? null);
-    } else if (!resolvedCharacter.userId && sessionUser) {
-      // Personaje huérfano (creado antes de loguearse): se adopta a la cuenta.
-      await db.character.update({
-        where: { id: resolvedCharacter.id },
-        data: { userId: sessionUser.id },
-      });
+    const sessionUser = await getSessionUser();
+    if (!sessionUser) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    return Response.json(await serializeCharacter(resolvedCharacter.id));
+    const character = await ensureCharacterForUser(sessionUser.id, sessionUser.name);
+    return Response.json(await serializeCharacter(character.id));
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return Response.json({ error: "Invalid request", issues: error.issues }, { status: 400 });
-    }
-
     console.error("[api/character] GET failed", error);
     return Response.json({ error: "Character request failed" }, { status: 500 });
   }

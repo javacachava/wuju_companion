@@ -1,17 +1,15 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import {
-  createCharacter as createCharacterFromApi,
-  getCharacter,
-  saveCharacter,
-} from "@/lib/companion/api";
+import { getCharacter, saveCharacter } from "@/lib/companion/api";
+import { useSession } from "@/components/auth/SessionContext";
 import type { CharacterProfile } from "@/lib/companion/types";
 
 const CHARACTER_ID_KEY = "characterId";
-const CHARACTER_USER_NAME_KEY = "characterUserName";
 
-type CompanionStatus = "checking" | "onboarding" | "selecting" | "ready";
+// "checking" = sesión cargando · "auth" = sin login (mostrar AuthForm) ·
+// "selecting" = logueado, falta elegir asistente · "ready" = todo listo.
+type CompanionStatus = "checking" | "auth" | "selecting" | "ready";
 
 type CompanionGlobalContextValue = {
   status: CompanionStatus;
@@ -19,7 +17,6 @@ type CompanionGlobalContextValue = {
   isLauncherOpen: boolean;
   openLauncher: () => void;
   closeLauncher: () => void;
-  createCharacter: (userName: string) => Promise<void>;
   updateCharacter: (character: CharacterProfile) => void;
   completeSelection: () => Promise<void>;
 };
@@ -31,6 +28,7 @@ type CompanionGlobalProviderProps = {
 };
 
 export function CompanionGlobalProvider({ children }: CompanionGlobalProviderProps) {
+  const { user, loading: sessionLoading } = useSession();
   const [status, setStatus] = useState<CompanionStatus>("checking");
   const [character, setCharacter] = useState<CharacterProfile | null>(null);
   const [isLauncherOpen, setIsLauncherOpen] = useState(false);
@@ -39,24 +37,30 @@ export function CompanionGlobalProvider({ children }: CompanionGlobalProviderPro
     let active = true;
 
     const loadCharacter = async () => {
-      const cachedUserName = localStorage.getItem(CHARACTER_USER_NAME_KEY);
-      if (!cachedUserName) {
-        localStorage.removeItem(CHARACTER_ID_KEY);
-        if (active) setStatus("onboarding");
+      if (sessionLoading) {
+        setStatus("checking");
+        return;
+      }
+
+      if (!user) {
+        setCharacter(null);
+        if (typeof window !== "undefined") localStorage.removeItem(CHARACTER_ID_KEY);
+        setStatus("auth");
         return;
       }
 
       try {
-        const existing = await getCharacter(cachedUserName);
+        const existing = await getCharacter();
         if (!active) return;
 
-        localStorage.setItem(CHARACTER_ID_KEY, existing.id);
+        if (typeof window !== "undefined") localStorage.setItem(CHARACTER_ID_KEY, existing.id);
         setCharacter(existing);
         setStatus(existing.assistant ? "ready" : "selecting");
       } catch {
-        localStorage.removeItem(CHARACTER_ID_KEY);
-        localStorage.removeItem(CHARACTER_USER_NAME_KEY);
-        if (active) setStatus("onboarding");
+        if (active) {
+          setCharacter(null);
+          setStatus("auth");
+        }
       }
     };
 
@@ -65,27 +69,11 @@ export function CompanionGlobalProvider({ children }: CompanionGlobalProviderPro
     return () => {
       active = false;
     };
-  }, []);
+  }, [user, sessionLoading]);
 
-  const openLauncher = useCallback(() => {
-    setIsLauncherOpen(true);
-  }, []);
-
-  const closeLauncher = useCallback(() => {
-    setIsLauncherOpen(false);
-  }, []);
-
-  const createCharacter = useCallback(async (userName: string) => {
-    const next = await createCharacterFromApi(userName);
-    localStorage.setItem(CHARACTER_USER_NAME_KEY, next.userName);
-    localStorage.setItem(CHARACTER_ID_KEY, next.id);
-    setCharacter(next);
-    setStatus("selecting");
-  }, []);
-
-  const updateCharacter = useCallback((next: CharacterProfile) => {
-    setCharacter(next);
-  }, []);
+  const openLauncher = useCallback(() => setIsLauncherOpen(true), []);
+  const closeLauncher = useCallback(() => setIsLauncherOpen(false), []);
+  const updateCharacter = useCallback((next: CharacterProfile) => setCharacter(next), []);
 
   const completeSelection = useCallback(async () => {
     if (!character?.assistant) return;
@@ -101,7 +89,6 @@ export function CompanionGlobalProvider({ children }: CompanionGlobalProviderPro
       isLauncherOpen,
       openLauncher,
       closeLauncher,
-      createCharacter,
       updateCharacter,
       completeSelection,
     }),
@@ -109,7 +96,6 @@ export function CompanionGlobalProvider({ children }: CompanionGlobalProviderPro
       character,
       closeLauncher,
       completeSelection,
-      createCharacter,
       isLauncherOpen,
       openLauncher,
       status,
@@ -118,9 +104,7 @@ export function CompanionGlobalProvider({ children }: CompanionGlobalProviderPro
   );
 
   return (
-    <CompanionGlobalContext.Provider value={value}>
-      {children}
-    </CompanionGlobalContext.Provider>
+    <CompanionGlobalContext.Provider value={value}>{children}</CompanionGlobalContext.Provider>
   );
 }
 
