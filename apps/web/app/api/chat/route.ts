@@ -1,11 +1,10 @@
-import { formatDataStreamPart } from "ai";
 import { z } from "zod";
 
 import { chatWithCompanion } from "@/lib/ai";
-import { describeAiError } from "@/lib/ai-errors";
 import { db } from "@/lib/db";
 import { triggerConversationLog } from "@/lib/n8n";
 import { enforceRateLimit } from "@/lib/rate-limit";
+import { toSafeDataStreamResponse } from "@/lib/safe-stream";
 
 const ChatRequestSchema = z
   .object({
@@ -16,45 +15,6 @@ const ChatRequestSchema = z
   .strict();
 
 const STREAM_ERROR_MESSAGE = "No pude responder ahora. Probemos de nuevo en un momento.";
-
-function toSafeDataStreamResponse(result: ReturnType<typeof chatWithCompanion>) {
-  const dataStream = result.toDataStream({
-    getErrorMessage: () => STREAM_ERROR_MESSAGE,
-  });
-
-  const safeStream = new ReadableStream<Uint8Array>({
-    async start(controller) {
-      const reader = dataStream.getReader();
-      const encoder = new TextEncoder();
-
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) {
-            break;
-          }
-
-          controller.enqueue(value);
-        }
-      } catch (error) {
-        console.error("[api/chat] stream failed:", describeAiError(error));
-        controller.enqueue(
-          encoder.encode(formatDataStreamPart("error", STREAM_ERROR_MESSAGE)),
-        );
-      } finally {
-        controller.close();
-        reader.releaseLock();
-      }
-    },
-  });
-
-  return new Response(safeStream, {
-    headers: {
-      "Content-Type": "text/plain; charset=utf-8",
-      "X-Vercel-AI-Data-Stream": "v1",
-    },
-  });
-}
 
 export async function POST(request: Request) {
   const limited = enforceRateLimit("chat", request);
@@ -126,7 +86,7 @@ export async function POST(request: Request) {
       },
     });
 
-    return toSafeDataStreamResponse(result);
+    return toSafeDataStreamResponse(result, STREAM_ERROR_MESSAGE, "api/chat");
   } catch (error) {
     if (error instanceof z.ZodError) {
       return Response.json({ error: "Invalid request", issues: error.issues }, { status: 400 });
