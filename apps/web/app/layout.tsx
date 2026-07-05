@@ -20,14 +20,14 @@ export const metadata: Metadata = {
     title: "El Compañero — Tu asistente libre, con cara y voz",
     description:
       "Un compañero libre. La cara y voz que vos elijas. Para el trabajo que sea.",
-    images: ["/parts/placeholder.png"],
+    images: ["/parts/body.png"],
   },
   twitter: {
     card: "summary_large_image",
     title: "El Compañero — Tu asistente libre, con cara y voz",
     description:
       "Un compañero libre. La cara y voz que vos elijas. Para el trabajo que sea.",
-    images: ["/parts/placeholder.png"],
+    images: ["/parts/body.png"],
   },
 };
 

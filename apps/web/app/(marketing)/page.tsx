@@ -58,9 +58,8 @@ function MascotPreview() {
     <div className="pointer-events-none absolute bottom-[-3rem] right-[-1rem] hidden h-[34rem] w-[34rem] opacity-95 md:block lg:right-[4rem]">
       {[
         ["/parts/body.png", "z-10"],
-        ["/parts/clothing-hoodie.png", "z-20"],
         ["/parts/hair-corto.png", "z-30"],
-        ["/parts/eyes-lentes.png", "z-40"],
+        ["/parts/eyes-grandes.png", "z-40"],
         ["/parts/mouth-sonrisa.png", "z-50"],
         ["/parts/accessory-audifonos.png", "z-60"],
       ].map(([src, z]) => (
