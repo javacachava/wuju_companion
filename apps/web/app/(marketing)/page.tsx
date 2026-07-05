@@ -19,13 +19,22 @@ import {
 
 const RELEASES_URL =
   "https://github.com/javacachava/wuju_companion/releases/tag/desktop-v0.1.0";
-const WINDOWS_INSTALLER_URL = `${RELEASES_URL.replace("/tag/", "/download/")}/El.Companero_0.1.0_x64-setup.exe`;
+const DOWNLOAD_BASE = RELEASES_URL.replace("/tag/", "/download/");
+const WINDOWS_INSTALLER_URL = `${DOWNLOAD_BASE}/El.Companero_0.1.0_x64-setup.exe`;
 
+const downloads = [
+  { label: "macOS (Apple Silicon)", href: `${DOWNLOAD_BASE}/El.Companero_0.1.0_aarch64.dmg` },
+  { label: "Linux (.AppImage)", href: `${DOWNLOAD_BASE}/El.Companero_0.1.0_amd64.AppImage` },
+  { label: "Linux (.deb)", href: `${DOWNLOAD_BASE}/El.Companero_0.1.0_amd64.deb` },
+];
+
+// Hoy el motor real es OpenAI. El resto es del roadmap (BYO-key multi-proveedor),
+// marcado como "pronto" para no prometer lo que todavía no corre.
 const providers = [
-  { name: "OpenAI", Icon: Bot, className: "text-slate-950" },
-  { name: "Claude", Icon: Sparkles, className: "text-slate-950" },
-  { name: "Gemini", Icon: Sparkles, className: "text-blue-600" },
-  { name: "Local AI", Icon: Cpu, className: "text-slate-950" },
+  { name: "OpenAI", Icon: Bot, className: "text-slate-950", soon: false },
+  { name: "Claude", Icon: Sparkles, className: "text-slate-950", soon: true },
+  { name: "Gemini", Icon: Sparkles, className: "text-blue-600", soon: true },
+  { name: "Local AI", Icon: Cpu, className: "text-slate-950", soon: true },
 ];
 
 const howItWorks = [
@@ -89,7 +98,7 @@ const footerColumns = [
     title: "Empresa",
     links: [
       { label: "Sobre nosotros", href: "/#nosotros" },
-      { label: "Contacto", href: "mailto:equipo@companero.dev" },
+      { label: "Contacto", href: "mailto:equipo@wuju.dev" },
       { label: "Términos de servicio", href: "/#terminos" },
       { label: "Política de privacidad", href: "/#privacidad" },
     ],
@@ -147,20 +156,36 @@ export default function LandingPage() {
                 Usar en el navegador
               </Link>
             </div>
-            <p className="mt-3 text-xs text-slate-500">
-              ¿Otro sistema?{" "}
-              <a href={RELEASES_URL} className="font-semibold text-blue-700 hover:text-blue-900">
-                macOS y Linux acá
-              </a>
-              . App sin firmar por ahora — Windows puede pedir confirmación al instalar.
+            <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+              <span className="text-slate-500">También para:</span>
+              {downloads.map(({ label, href }) => (
+                <a
+                  key={label}
+                  href={href}
+                  className="font-semibold text-blue-700 underline-offset-2 hover:text-blue-900 hover:underline"
+                >
+                  {label}
+                </a>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-slate-500">
+              App sin firmar por ahora — Windows/macOS pueden pedir confirmación al instalar.
             </p>
 
             <div className="mt-14 flex flex-wrap items-center gap-x-7 gap-y-4 text-sm font-semibold text-slate-950 sm:text-base">
               <span className="font-medium text-slate-900">Funciona con:</span>
-              {providers.map(({ name, Icon, className }) => (
-                <span key={name} className={`inline-flex items-center gap-2 ${className}`}>
+              {providers.map(({ name, Icon, className, soon }) => (
+                <span
+                  key={name}
+                  className={`inline-flex items-center gap-2 ${soon ? "text-slate-400" : className}`}
+                >
                   <Icon className="h-5 w-5" />
                   {name}
+                  {soon ? (
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                      pronto
+                    </span>
+                  ) : null}
                 </span>
               ))}
             </div>
@@ -341,7 +366,7 @@ export default function LandingPage() {
           </div>
 
           <div className="mt-10 flex flex-col gap-4 border-t border-slate-200 pt-6 text-sm text-slate-500 md:flex-row md:items-center md:justify-between">
-            <p>© 2025 Wuju Companion. Todos los derechos reservados.</p>
+            <p>© 2026 Wuju Companion. Todos los derechos reservados.</p>
             <div className="flex flex-wrap items-center gap-5">
               <span className="inline-flex items-center gap-2">
                 <Globe2 className="h-4 w-4" />
