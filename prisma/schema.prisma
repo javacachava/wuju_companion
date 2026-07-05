@@ -1,12 +1,17 @@
 // Fuente de verdad: docs/CONTRATOS.md sección "Modelo de datos (Prisma)"
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  // Fase 8 de DESKTOP-MIGRATION-PLAN.md: memoria semántica. Prisma no tiene tipo
+  // nativo para pgvector — se modela como Unsupported("vector(N)") y las queries
+  // de similitud van por $queryRaw, no por el Client normal.
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
 }
 
 model User {
@@ -57,6 +62,7 @@ model Character {
   messages  Message[]
   inventory InventoryItem[]
   skills    ActiveSkill[]
+  memories  MemoryEntry[]
 }
 
 model Part {
@@ -114,6 +120,12 @@ model CharacterTemplate {
   summary    String
   avatar     String // iniciales o emoji mostrado en la tarjeta
   personality String @default("amigable")
+  // Fase 7.1 de DESKTOP-MIGRATION-PLAN.md: personalidad como producto de marketplace.
+  // Texto libre de un creador externo — capa CONFIGURABLE del system prompt, nunca
+  // reemplaza el núcleo inmutable de reglas de lib/ai.ts. Requiere curaduría antes de
+  // publicar (riesgo de prompt injection vía marketplace, ver DESKTOP-MIGRATION-PLAN.md
+  // sección 7.1). Null = personaje usa el mapa fijo de `personality` como hasta ahora.
+  personalityPrompt String?
   voiceId    String
   voiceLabel String
   statsJson  String // {"analysis":85,"creativity":62,"speed":94}
@@ -166,4 +178,24 @@ model Ownership {
   user User @relation(fields: [userId], references: [id])
 
   @@unique([userId, productType, productId])
+}
+
+// ── Fase 8 (DESKTOP-MIGRATION-PLAN.md): memoria semántica ──────────────────
+// Hechos DESTILADOS del usuario (no transcripts crudos), extraídos async post-turno
+// por un modelo barato. El Context Builder hace similarity search acá antes de armar
+// el system prompt (Etapa C). Explícitamente pospuesto para el MVP web (CLAUDE.md:
+// "memoria es JSON simple") — esto es evolución de la capa desktop, no del MVP.
+model MemoryEntry {
+  id          String   @id @default(cuid())
+  characterId String
+  content     String // hecho destilado, ej: "prefiere respuestas cortas"
+  kind        String // 'fact' | 'preference' | 'event'
+  // pgvector no tiene tipo nativo en Prisma Client — Unsupported() lo excluye de
+  // los queries generados; se opera por SQL crudo (ver nota de migración).
+  embedding   Unsupported("vector(1536)")
+  createdAt   DateTime @default(now())
+
+  character Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@index([characterId])
 }
