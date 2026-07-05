@@ -1,4 +1,5 @@
 import type {
+  CharacterAvatar,
   CharacterInventory,
   CharacterPart,
   CharacterParts,
@@ -77,6 +78,30 @@ function saveStoredAssistant(characterId: string, assistant: SelectedAssistant |
   window.localStorage.setItem(key, JSON.stringify(assistant));
 }
 
+const AVATAR_STORAGE_PREFIX = "companion-avatar:";
+
+function getStoredAvatar(characterId: string): CharacterAvatar | null {
+  if (typeof window === "undefined") return null;
+  const raw = window.localStorage.getItem(`${AVATAR_STORAGE_PREFIX}${characterId}`);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as CharacterAvatar;
+  } catch {
+    return null;
+  }
+}
+
+// Guarda (o limpia con null) el avatar del marketplace elegido como cara del compañero.
+export function setCharacterAvatar(characterId: string, avatar: CharacterAvatar | null) {
+  if (typeof window === "undefined") return;
+  const key = `${AVATAR_STORAGE_PREFIX}${characterId}`;
+  if (!avatar) {
+    window.localStorage.removeItem(key);
+    return;
+  }
+  window.localStorage.setItem(key, JSON.stringify(avatar));
+}
+
 function hydrateParts(character: ApiCharacter, inventory: CharacterInventory): CharacterParts {
   return Object.fromEntries(
     categories.map((category) => {
@@ -103,6 +128,7 @@ function toCharacterProfile(
   inventory: CharacterInventory,
 ): CharacterProfile {
   const assistant = getStoredAssistant(character.id);
+  const avatar = getStoredAvatar(character.id);
 
   return {
     id: character.id,
@@ -111,6 +137,7 @@ function toCharacterProfile(
     voiceId: assistant?.voiceId ?? character.voiceId,
     parts: hydrateParts(character, inventory),
     assistant,
+    avatar,
   };
 }
 

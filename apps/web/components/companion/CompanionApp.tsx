@@ -108,46 +108,46 @@ export function CompanionApp({ character, onCharacterChange }: CompanionAppProps
 
   return (
     <CharacterProvider value={contextValue}>
-      <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-5">
-        <section className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-100/70 shadow-sm">
-          <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white/80 px-4 py-3 sm:px-5">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-800">
+      <main className="mx-auto w-full max-w-[88rem] px-3 py-3 sm:px-4">
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-100/70 shadow-sm">
+          <header className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-white/80 px-3 py-2.5 sm:px-4">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-800">
                 Monster Storage
               </p>
-              <p className="text-sm text-slate-600">Personalización y capacidades</p>
+              <p className="text-xs text-slate-600 sm:text-sm">Personalización y capacidades</p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-1 items-center justify-end gap-2">
               <input
                 value={partsSearch}
                 onChange={(event) => setPartsSearch(event.target.value)}
                 placeholder="Buscar partes..."
-                className="w-full max-w-xs rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                className="w-full max-w-[220px] rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
               />
               <button
                 type="button"
                 onClick={() => setPermissionsOpen(true)}
-                className="shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+                className="shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
               >
                 Permisos
               </button>
             </div>
           </header>
 
-          <div className="grid gap-4 p-4 xl:grid-cols-[180px_minmax(0,1fr)_320px]">
-            <aside className="xl:order-1">
+          <div className="grid gap-3 p-3 lg:grid-cols-[160px_minmax(0,1fr)_300px]">
+            <aside className="lg:order-1">
               <WardrobeSelector
                 selected={selectedCategory}
                 onSelect={(next) => setSelectedCategory(next)}
               />
             </aside>
 
-            <section className="space-y-4 xl:order-2">
+            <section className="space-y-3 lg:order-2">
               <CharacterStage />
               <PartsGrid category={selectedCategory} search={partsSearch} />
             </section>
 
-            <aside className="space-y-4 xl:order-3">
+            <aside className="space-y-3 lg:order-3">
               <AssistantData />
               <CharacterInfo onOpenChat={() => setChatOpen((current) => !current)} />
             </aside>

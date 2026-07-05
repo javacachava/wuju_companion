@@ -39,4 +39,11 @@ export type CharacterProfile = {
   voiceId: string;
   parts: CharacterParts;
   assistant: SelectedAssistant | null;
+  avatar: CharacterAvatar | null;
+};
+
+export type CharacterAvatar = {
+  id: string;
+  name: string;
+  image: string;
 };
