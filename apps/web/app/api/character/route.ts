@@ -119,14 +119,15 @@ async function createCharacter(userName: string, userId: string | null) {
       },
     });
 
-    for (const part of freeParts) {
-      await tx.inventoryItem.create({
-        data: {
-          characterId: character.id,
-          partId: part.id,
-        },
-      });
-    }
+    // Un solo round-trip en vez de N secuenciales — con latencia real de red
+    // (pooler de Supabase) el loop de creates uno-por-uno superaba el timeout
+    // por default de la transacción interactiva de Prisma (5s).
+    await tx.inventoryItem.createMany({
+      data: freeParts.map((part) => ({
+        characterId: character.id,
+        partId: part.id,
+      })),
+    });
 
     return character;
   });
