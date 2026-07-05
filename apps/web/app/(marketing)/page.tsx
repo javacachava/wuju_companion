@@ -18,14 +18,14 @@ import {
 } from "lucide-react";
 
 const RELEASES_URL =
-  "https://github.com/javacachava/wuju_companion/releases/tag/desktop-v0.1.0";
+  "https://github.com/javacachava/wuju_companion/releases/tag/desktop-v0.1.1";
 const DOWNLOAD_BASE = RELEASES_URL.replace("/tag/", "/download/");
-const WINDOWS_INSTALLER_URL = `${DOWNLOAD_BASE}/El.Companero_0.1.0_x64-setup.exe`;
+const WINDOWS_INSTALLER_URL = `${DOWNLOAD_BASE}/El.Companero_0.1.1_x64-setup.exe`;
 
 const downloads = [
-  { label: "macOS (Apple Silicon)", href: `${DOWNLOAD_BASE}/El.Companero_0.1.0_aarch64.dmg` },
-  { label: "Linux (.AppImage)", href: `${DOWNLOAD_BASE}/El.Companero_0.1.0_amd64.AppImage` },
-  { label: "Linux (.deb)", href: `${DOWNLOAD_BASE}/El.Companero_0.1.0_amd64.deb` },
+  { label: "macOS (Apple Silicon)", href: `${DOWNLOAD_BASE}/El.Companero_0.1.1_aarch64.dmg` },
+  { label: "Linux (.AppImage)", href: `${DOWNLOAD_BASE}/El.Companero_0.1.1_amd64.AppImage` },
+  { label: "Linux (.deb)", href: `${DOWNLOAD_BASE}/El.Companero_0.1.1_amd64.deb` },
 ];
 
 // Hoy el motor real es OpenAI. El resto es del roadmap (BYO-key multi-proveedor),
